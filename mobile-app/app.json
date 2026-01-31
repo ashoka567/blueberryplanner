@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "WPCLife",
+    "slug": "wpclife",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#6366f1"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.wpclife.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#6366f1"
+      },
+      "package": "com.wpclife.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "apiUrl": "https://84f4d655-5aa9-4be0-8601-93c6a0e8a0d1-00-2o74ew3658wc2.riker.replit.dev",
+      "eas": {
+        "projectId": "wpclife-mobile"
+      }
+    }
+  }
+}

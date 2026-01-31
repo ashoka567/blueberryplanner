@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: wpclife-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: wpclife
+    networks:
+      - wpclife-network
+
+  backend:
+    build:
+      context: ./wpclife-backend
+      dockerfile: Dockerfile
+    container_name: wpclife-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/wpclife
+      - JWT_SECRET=${JWT_SECRET:-your-256-bit-secret-key-change-in-production}
+      - CORS_ORIGINS=http://localhost:4200,http://localhost:80
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      - mongodb
+    networks:
+      - wpclife-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./wpclife-frontend
+      dockerfile: Dockerfile
+    container_name: wpclife-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - wpclife-network
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
+
+networks:
+  wpclife-network:
+    driver: bridge

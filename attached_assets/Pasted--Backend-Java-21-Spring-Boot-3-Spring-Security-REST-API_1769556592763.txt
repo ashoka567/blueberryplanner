@@ -1,0 +1,59 @@
+    * Backend: Java 21, Spring Boot 3, Spring Security, REST API
+    * Frontend: Angular (latest LTS) + Angular Material
+    * DB: MongoDB
+    * Auth: JWT (access + refresh), separate logins
+    * Include: security, audit logs, monitoring
+* Use only Path A (simplest free hosting) for deployment.
+* Functional scope (MVP)
+* Calendar events + medication adherence (taken/skipped/missed + escalation) + groceries + chores + kids homework. Multi-tenant Family/Household with roles (GUARDIAN, MEMBER) and multiple dependents.
+* 
+* What to produce (in this exact order)
+* 1) Repo structure decision (mono-repo vs two repos)
+    * Recommend one approach and justify it for an MVP.
+    * Provide the exact folder layout.
+* Include shared docs for environment variables and local setup.
+* 2) Local development setup
+* Provide a sample docker-compose.yml (and any needed .env examples) to run locally:
+    * MongoDB
+    * Mongo Express (optional)
+    * Backend Spring Boot (or explain how to run it from IDE while Mongo runs in Docker)
+* (Optional) a reverse proxy if helpful, but keep it simple/free.
+* Also include:
+    * backend application.yml key placeholders (JWT secret, Mongo URI, CORS origins)
+* Angular environment.ts placeholders for API base URL
+* 3) Path A deployment plan (free-tier friendly, step-by-step)
+* Use these specific choices unless you have a better free alternative:
+    * Frontend hosting: Cloudflare Pages (free) (or GitHub Pages if simpler—pick one and stick to it)
+    * Backend hosting: Render free tier (or Fly.io free allowance—pick one and stick to it)
+* Database hosting: MongoDB Atlas free tier (M0)
+* Include detailed steps:
+    * Create accounts/projects
+    * Build commands for Angular + Spring Boot
+    * Configure environment variables/secrets on the host
+    * CORS configuration between SPA and API
+    * Set up custom domain WPCLife.com:
+        * DNS records needed for frontend and API (e.g., wpclife.com and api.wpclife.com)
+        * TLS/HTTPS handling
+    * Basic CI/CD using GitHub Actions (free):
+        * workflow for Angular deploy to chosen host
+* workflow for Spring Boot deploy to chosen host
+* 4) Production configuration checklist
+* Provide a checklist for go-live, including:
+    * Security headers, CORS, rate limiting guidance
+    * JWT rotation/refresh token storage choice
+    * Password hashing
+    * Audit logging enabled and protected (guardian-only access)
+    * Monitoring enabled: Actuator endpoints exposure rules, health checks
+    * Backups strategy for MongoDB Atlas free tier (limitations + workaround)
+* Log retention approach in free tiers
+* 5) Limitations / risks of free tiers
+* List concrete risks and mitigations for:
+    * sleeping instances / cold starts (backend)
+    * quotas (requests, bandwidth, build minutes)
+    * database storage/connection limits (Atlas M0)
+    * email/invite flows (if not available)
+    * push notifications (note what can be postponed if mobile isn’t in MVP)
+* domain/DNS propagation issues
+* Constraints
+    * REST only (no GraphQL)
+    * Free/open-source libraries + free hosting tiers

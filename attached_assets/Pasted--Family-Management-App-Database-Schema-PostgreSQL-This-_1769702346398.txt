@@ -1,0 +1,254 @@
+# 🏠 Family Management App – Database Schema (PostgreSQL)
+
+This document defines the PostgreSQL database schema for a **family-based application** that manages:
+
+- Chores
+- Grocery lists
+- Medicines & medicine logs
+- Reminders & notifications
+- Role-based access control (RBAC)
+
+The system supports:
+- Multiple admins per family
+- Kids without email/login
+- One user belonging to multiple families
+- Fine-grained permissions
+- Family-scoped data isolation
+
+---
+
+## 📌 Core Design Principles
+
+- **Family (Household)** is the root entity
+- **Users** join families via `family_members`
+- **Roles + Permissions** define access
+- All operational data is **scoped to a family**
+- Business logic stays in the application layer
+
+---
+
+## 🧑 Users
+
+```sql
+CREATE TABLE users (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name            VARCHAR(100) NOT NULL,
+    email           VARCHAR(150) UNIQUE,
+    phone           VARCHAR(20),
+    login_type      VARCHAR(20) NOT NULL, -- PASSWORD, OTP, NONE
+    pin_hash        VARCHAR(255),
+    age             INT,
+    is_child        BOOLEAN DEFAULT FALSE,
+    status          VARCHAR(20) DEFAULT 'ACTIVE',
+    created_at      TIMESTAMP DEFAULT NOW()
+);
+Notes:
+
+Kids can exist without email/password
+
+pin_hash supports kid PIN-based access
+
+👨‍👩‍👧 Families (Households)
+CREATE TABLE families (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name            VARCHAR(100) NOT NULL,
+    created_by      UUID REFERENCES users(id),
+    timezone        VARCHAR(50),
+    settings        JSONB,
+    created_at      TIMESTAMP DEFAULT NOW()
+);
+settings example:
+
+{
+  "allowKidsToEditGroceries": false,
+  "requireMedicineConfirmation": true
+}
+🧩 Roles & Permissions (RBAC)
+Roles
+CREATE TABLE roles (
+    id      SERIAL PRIMARY KEY,
+    name    VARCHAR(30) UNIQUE NOT NULL
+);
+Example roles:
+
+SUPER_ADMIN
+
+ADMIN
+
+MEMBER
+
+CHILD
+
+VIEW_ONLY
+
+Permissions
+CREATE TABLE permissions (
+    id          SERIAL PRIMARY KEY,
+    code        VARCHAR(50) UNIQUE NOT NULL,
+    description TEXT
+);
+Example permissions:
+
+CAN_MANAGE_MEMBERS
+
+CAN_ADD_CHORES
+
+CAN_MARK_CHORES
+
+CAN_ADD_GROCERIES
+
+CAN_MANAGE_MEDICINES
+
+CAN_VIEW_MEDICINE_LOGS
+
+CAN_CREATE_REMINDERS
+
+Role → Permission Mapping
+CREATE TABLE role_permissions (
+    role_id         INT REFERENCES roles(id) ON DELETE CASCADE,
+    permission_id   INT REFERENCES permissions(id) ON DELETE CASCADE,
+    PRIMARY KEY (role_id, permission_id)
+);
+👨‍👩‍👧‍👦 Family Members (User ↔ Family)
+CREATE TABLE family_members (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    family_id       UUID REFERENCES families(id) ON DELETE CASCADE,
+    user_id         UUID REFERENCES users(id) ON DELETE CASCADE,
+    role_id         INT REFERENCES roles(id),
+    joined_at       TIMESTAMP DEFAULT NOW(),
+    status          VARCHAR(20) DEFAULT 'ACTIVE',
+    UNIQUE (family_id, user_id)
+);
+Optional: Member Permission Overrides
+CREATE TABLE member_permissions (
+    family_member_id    UUID REFERENCES family_members(id) ON DELETE CASCADE,
+    permission_id       INT REFERENCES permissions(id) ON DELETE CASCADE,
+    PRIMARY KEY (family_member_id, permission_id)
+);
+🧹 Chores
+CREATE TABLE chores (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    family_id       UUID REFERENCES families(id) ON DELETE CASCADE,
+    title           VARCHAR(200) NOT NULL,
+    assigned_to     UUID REFERENCES users(id),
+    due_date        DATE,
+    repeat_type     VARCHAR(20), -- DAILY, WEEKLY
+    status          VARCHAR(20) DEFAULT 'PENDING',
+    created_by      UUID REFERENCES users(id),
+    created_at      TIMESTAMP DEFAULT NOW()
+);
+Index:
+
+CREATE INDEX idx_chores_family_assigned 
+ON chores (family_id, assigned_to);
+🛒 Grocery Items
+CREATE TABLE grocery_items (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    family_id       UUID REFERENCES families(id) ON DELETE CASCADE,
+    name            VARCHAR(100) NOT NULL,
+    quantity        VARCHAR(50),
+    category        VARCHAR(50),
+    status          VARCHAR(20) DEFAULT 'PENDING',
+    added_by        UUID REFERENCES users(id),
+    updated_at      TIMESTAMP DEFAULT NOW()
+);
+💊 Medicines
+CREATE TABLE medicines (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    family_id       UUID REFERENCES families(id) ON DELETE CASCADE,
+    name            VARCHAR(100) NOT NULL,
+    dosage          VARCHAR(50),
+    schedule        JSONB, -- flexible timing
+    assigned_to     UUID REFERENCES users(id),
+    active          BOOLEAN DEFAULT TRUE,
+    created_by      UUID REFERENCES users(id),
+    created_at      TIMESTAMP DEFAULT NOW()
+);
+Schedule example:
+
+{
+  "type": "DAILY",
+  "times": ["08:00", "20:00"]
+}
+📋 Medicine Logs (Append-only)
+CREATE TABLE medicine_logs (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    family_id       UUID REFERENCES families(id) ON DELETE CASCADE,
+    medicine_id     UUID REFERENCES medicines(id) ON DELETE CASCADE,
+    taken_by        UUID REFERENCES users(id),
+    marked_by       UUID REFERENCES users(id),
+    taken_at        TIMESTAMP NOT NULL,
+    status          VARCHAR(20) DEFAULT 'TAKEN'
+);
+Index:
+
+CREATE INDEX idx_medicine_logs_family_time
+ON medicine_logs (family_id, taken_at DESC);
+⏰ Reminders
+CREATE TABLE reminders (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    family_id       UUID REFERENCES families(id) ON DELETE CASCADE,
+    title           VARCHAR(200) NOT NULL,
+    description     TEXT,
+    type            VARCHAR(30) NOT NULL, -- CHORE, MEDICINE, GROCERY, CUSTOM
+    reference_id    UUID, -- optional link to chores / medicines
+    schedule        JSONB NOT NULL,
+    timezone        VARCHAR(50),
+    created_by      UUID REFERENCES users(id),
+    is_active       BOOLEAN DEFAULT TRUE,
+    created_at      TIMESTAMP DEFAULT NOW(),
+    updated_at      TIMESTAMP DEFAULT NOW()
+);
+Schedule examples:
+
+{ "type": "ONCE", "at": "2026-02-01T08:00:00" }
+{ "type": "WEEKLY", "days": ["MON","FRI"], "time": "19:00" }
+👥 Reminder Targets (Who Gets Notified)
+CREATE TABLE reminder_targets (
+    reminder_id    UUID REFERENCES reminders(id) ON DELETE CASCADE,
+    user_id        UUID REFERENCES users(id) ON DELETE CASCADE,
+    PRIMARY KEY (reminder_id, user_id)
+);
+📤 Reminder Delivery Logs
+CREATE TABLE reminder_logs (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    reminder_id     UUID REFERENCES reminders(id) ON DELETE CASCADE,
+    user_id         UUID REFERENCES users(id),
+    scheduled_at    TIMESTAMP NOT NULL,
+    delivered_at    TIMESTAMP,
+    status          VARCHAR(20), -- SENT, FAILED, SKIPPED, ACKNOWLEDGED
+    error_message   TEXT
+);
+Index:
+
+CREATE INDEX idx_reminder_logs_schedule
+ON reminder_logs (scheduled_at);
+🔐 Authorization Model (Runtime)
+Identify user_id and family_id
+
+Load family_members
+
+Resolve role → permissions
+
+Apply optional permission overrides
+
+Allow / deny action
+
+✅ Why This Schema Works Well
+Clean multi-tenant isolation
+
+Strong referential integrity
+
+Scales to multiple families per user
+
+Flexible reminders & schedules
+
+Easy to extend (calendar, expenses, reports)
+
+📌 Recommended usage
+
+Use Flyway / Liquibase for migrations
+
+Keep permission logic in service layer
+
+Use background jobs for reminders

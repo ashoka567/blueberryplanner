@@ -1,0 +1,49 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme inline {
+  --font-sans: 'Inter', sans-serif;
+  --font-display: 'Outfit', sans-serif;
+  
+  --color-background: 30 20% 98%; /* Warm off-white */
+  --color-foreground: 222 47% 11%;
+  
+  --color-card: 0 0% 100%;
+  --color-card-foreground: 222 47% 11%;
+  
+  --color-popover: 0 0% 100%;
+  --color-popover-foreground: 222 47% 11%;
+  
+  --color-primary: 25 75% 47%; /* Burnt Orange */
+  --color-primary-foreground: 0 0% 100%;
+  
+  --color-secondary: 30 90% 55%; /* Warm Orange */
+  --color-secondary-foreground: 222 47% 11%;
+  
+  --color-muted: 30 20% 96%;
+  --color-muted-foreground: 215.4 16.3% 46.9%;
+  
+  --color-accent: 30 30% 95%;
+  --color-accent-foreground: 222.2 47.4% 11.2%;
+  
+  --color-destructive: 0 84.2% 60.2%;
+  --color-destructive-foreground: 210 40% 98%;
+
+  --color-border: 30 20% 88%;
+  --color-input: 30 20% 88%;
+  --color-ring: 25 75% 47%;
+  
+  --radius: 0.75rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight;
+  }
+}
