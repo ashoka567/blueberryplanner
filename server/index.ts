@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
+import cors from "cors";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
@@ -8,6 +9,14 @@ import { pool } from "./db";
 
 const app = express();
 const httpServer = createServer(app);
+
+// Enable CORS for native mobile apps (Capacitor)
+app.use(cors({
+  origin: ['capacitor://localhost', 'ionic://localhost', 'http://localhost', 'https://localhost'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+}));
 
 declare module "http" {
   interface IncomingMessage {

@@ -1,6 +1,16 @@
 import { Family, User, Chore, GroceryItem, Medicine, MedicineLog, Reminder } from './types';
+import { Capacitor } from '@capacitor/core';
 
-const API_BASE = '/api';
+// Use full URL when running as native app, relative path for web
+const getApiBase = () => {
+  if (Capacitor.isNativePlatform()) {
+    // Point to your production server for native apps
+    return 'https://blueberry-planner.replit.app/api';
+  }
+  return '/api';
+};
+
+const API_BASE = getApiBase();
 
 export async function getFamilies(): Promise<Family[]> {
   const res = await fetch(`${API_BASE}/families`);
