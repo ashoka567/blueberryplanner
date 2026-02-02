@@ -12,7 +12,7 @@ const httpServer = createServer(app);
 
 // Enable CORS for native mobile apps (Capacitor)
 app.use(cors({
-  origin: ['capacitor://localhost', 'ionic://localhost', 'http://localhost', 'https://localhost'],
+  origin: true, // Allow all origins for mobile app compatibility
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],

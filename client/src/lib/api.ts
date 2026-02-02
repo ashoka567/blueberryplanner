@@ -17,7 +17,7 @@ const isNativePlatform = () => {
 const getApiBase = () => {
   if (isNativePlatform()) {
     // Point to your production server for native apps
-    return 'https://blueberry-planner.replit.app/api';
+    return 'https://84f4d655-5aa9-4be0-8601-93c6a0e8a0d1-00-2o74ew3658wc2.riker.replit.dev/api';
   }
   return '/api';
 };
