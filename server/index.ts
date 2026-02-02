@@ -15,7 +15,7 @@ app.use(cors({
   origin: true, // Allow all origins for mobile app compatibility
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-User-Id', 'X-Family-Id'],
 }));
 
 declare module "http" {
@@ -68,6 +68,22 @@ app.use(
     },
   })
 );
+
+// Middleware to populate session from headers for native mobile apps (iOS/Android)
+// This is needed because WKWebView doesn't persist cookies properly
+app.use((req: Request, _res: Response, next: NextFunction) => {
+  const userId = req.headers['x-user-id'] as string;
+  const familyId = req.headers['x-family-id'] as string;
+  
+  // If session is empty but headers have auth info, use headers
+  if (!req.session.userId && userId) {
+    req.session.userId = userId;
+  }
+  if (!req.session.familyId && familyId) {
+    req.session.familyId = familyId;
+  }
+  next();
+});
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {

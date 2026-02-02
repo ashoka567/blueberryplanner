@@ -26,9 +26,32 @@ const API_BASE = getApiBase();
 
 // Helper for fetch with credentials (needed for cookies on iOS)
 const fetchWithCredentials = (url: string, options?: RequestInit) => {
+  const headers: Record<string, string> = {
+    ...(options?.headers as Record<string, string> || {}),
+  };
+  
+  // For native platforms, send auth info in headers since cookies don't work
+  if (isNativePlatform()) {
+    const stored = localStorage.getItem('blueberry_auth');
+    if (stored) {
+      try {
+        const authData = JSON.parse(stored);
+        if (authData.user?.id) {
+          headers['X-User-Id'] = authData.user.id;
+        }
+        if (authData.familyId) {
+          headers['X-Family-Id'] = authData.familyId;
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
+    }
+  }
+  
   return fetch(url, {
     ...options,
     credentials: 'include',
+    headers,
   });
 };
 
