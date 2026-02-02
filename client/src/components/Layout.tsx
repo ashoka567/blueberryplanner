@@ -44,7 +44,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const family = useCurrentFamily();
   const { data: members = [] } = useFamilyMembers(family?.id);
   const { data: authData } = useAuthUser();
-  const currentUser = members.find(m => m.id === authData?.user?.id) || members[0];
+  // Use auth user data directly, fallback to family member only if needed for extra fields
+  const memberData = members.find(m => m.id === authData?.user?.id);
+  const currentUser = authData?.user ? {
+    id: authData.user.id,
+    name: authData.user.name,
+    email: authData.user.email,
+    isChild: authData.user.isChild,
+    avatar: memberData?.avatar,
+  } : null;
   const { toast } = useToast();
 
   const handleLogout = async () => {
