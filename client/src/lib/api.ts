@@ -367,8 +367,40 @@ export async function register(data: RegisterData): Promise<AuthResponse> {
     const error = await res.json();
     throw new Error(error.error || 'Registration failed');
   }
-  return res.json();
+  const result = await res.json();
+  // Save to localStorage for native platforms
+  if (result.success && result.user) {
+    saveAuthToStorage({ user: result.user, familyId: result.familyId });
+  }
+  return result;
 }
+
+const AUTH_STORAGE_KEY = 'blueberry_auth';
+
+// Save auth data to localStorage for native platforms
+const saveAuthToStorage = (data: { user: AuthUser; familyId?: string }) => {
+  if (isNativePlatform()) {
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(data));
+  }
+};
+
+// Get auth data from localStorage
+const getAuthFromStorage = (): { user: AuthUser; familyId?: string } | null => {
+  try {
+    const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return null;
+};
+
+// Clear auth data from localStorage
+const clearAuthFromStorage = () => {
+  localStorage.removeItem(AUTH_STORAGE_KEY);
+};
 
 export async function login(email: string, password: string): Promise<AuthResponse> {
   const res = await fetchWithCredentials(`${API_BASE}/auth/login`, {
@@ -380,10 +412,16 @@ export async function login(email: string, password: string): Promise<AuthRespon
     const error = await res.json();
     throw new Error(error.error || 'Login failed');
   }
-  return res.json();
+  const data = await res.json();
+  // Save to localStorage for native platforms
+  if (data.success && data.user) {
+    saveAuthToStorage({ user: data.user, familyId: data.familyId });
+  }
+  return data;
 }
 
 export async function logout(): Promise<void> {
+  clearAuthFromStorage();
   await fetchWithCredentials(`${API_BASE}/auth/logout`, { method: 'POST' });
 }
 
@@ -394,6 +432,18 @@ export interface MeResponse {
 }
 
 export async function getMe(): Promise<MeResponse> {
+  // On native platforms, check localStorage first
+  if (isNativePlatform()) {
+    const stored = getAuthFromStorage();
+    if (stored) {
+      return {
+        authenticated: true,
+        user: stored.user,
+        familyId: stored.familyId,
+      };
+    }
+  }
+  
   const res = await fetchWithCredentials(`${API_BASE}/auth/me`);
   return res.json();
 }
@@ -414,7 +464,15 @@ export async function kidLogin(familyName: string, kidName: string, pin: string)
     const error = await res.json();
     throw new Error(error.error || 'Invalid PIN');
   }
-  return res.json();
+  const data = await res.json();
+  // Save to localStorage for native platforms
+  if (data.success && data.user) {
+    saveAuthToStorage({ 
+      user: { ...data.user, email: null }, 
+      familyId: data.familyId 
+    });
+  }
+  return data;
 }
 
 export interface Kid {
