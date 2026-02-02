@@ -1,9 +1,21 @@
 import { Family, User, Chore, GroceryItem, Medicine, MedicineLog, Reminder } from './types';
-import { Capacitor } from '@capacitor/core';
+
+// Detect if running as a native Capacitor app
+const isNativePlatform = () => {
+  try {
+    // Check for Capacitor native platform indicators
+    const win = window as any;
+    return win.Capacitor?.isNativePlatform?.() || 
+           win.Capacitor?.platform !== 'web' ||
+           (typeof win.Capacitor !== 'undefined' && win.Capacitor.platform !== undefined && win.Capacitor.platform !== 'web');
+  } catch {
+    return false;
+  }
+};
 
 // Use full URL when running as native app, relative path for web
 const getApiBase = () => {
-  if (Capacitor.isNativePlatform()) {
+  if (isNativePlatform()) {
     // Point to your production server for native apps
     return 'https://blueberry-planner.replit.app/api';
   }
