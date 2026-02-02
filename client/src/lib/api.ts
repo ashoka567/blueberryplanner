@@ -24,28 +24,36 @@ const getApiBase = () => {
 
 const API_BASE = getApiBase();
 
+// Helper for fetch with credentials (needed for cookies on iOS)
+const fetchWithCredentials = (url: string, options?: RequestInit) => {
+  return fetch(url, {
+    ...options,
+    credentials: 'include',
+  });
+};
+
 export async function getFamilies(): Promise<Family[]> {
-  const res = await fetch(`${API_BASE}/families`);
+  const res = await fetchWithCredentials(`${API_BASE}/families`);
   return res.json();
 }
 
 export async function getFamily(id: string): Promise<Family> {
-  const res = await fetch(`${API_BASE}/families/${id}`);
+  const res = await fetchWithCredentials(`${API_BASE}/families/${id}`);
   return res.json();
 }
 
 export async function getFamilyMembers(familyId: string): Promise<User[]> {
-  const res = await fetch(`${API_BASE}/families/${familyId}/members`);
+  const res = await fetchWithCredentials(`${API_BASE}/families/${familyId}/members`);
   return res.json();
 }
 
 export async function getUsers(): Promise<User[]> {
-  const res = await fetch(`${API_BASE}/users`);
+  const res = await fetchWithCredentials(`${API_BASE}/users`);
   return res.json();
 }
 
 export async function updateUserAvatar(userId: string, avatar: string): Promise<{ success: boolean; avatar: string }> {
-  const res = await fetch(`${API_BASE}/users/${userId}/avatar`, {
+  const res = await fetchWithCredentials(`${API_BASE}/users/${userId}/avatar`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ avatar }),
@@ -58,12 +66,12 @@ export async function updateUserAvatar(userId: string, avatar: string): Promise<
 }
 
 export async function getChores(familyId: string): Promise<Chore[]> {
-  const res = await fetch(`${API_BASE}/families/${familyId}/chores`);
+  const res = await fetchWithCredentials(`${API_BASE}/families/${familyId}/chores`);
   return res.json();
 }
 
 export async function createChore(familyId: string, chore: Partial<Chore>): Promise<Chore> {
-  const res = await fetch(`${API_BASE}/families/${familyId}/chores`, {
+  const res = await fetchWithCredentials(`${API_BASE}/families/${familyId}/chores`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(chore),
@@ -72,7 +80,7 @@ export async function createChore(familyId: string, chore: Partial<Chore>): Prom
 }
 
 export async function updateChore(id: string, updates: Partial<Chore>): Promise<Chore> {
-  const res = await fetch(`${API_BASE}/chores/${id}`, {
+  const res = await fetchWithCredentials(`${API_BASE}/chores/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(updates),
@@ -81,16 +89,16 @@ export async function updateChore(id: string, updates: Partial<Chore>): Promise<
 }
 
 export async function deleteChore(id: string): Promise<void> {
-  await fetch(`${API_BASE}/chores/${id}`, { method: 'DELETE' });
+  await fetchWithCredentials(`${API_BASE}/chores/${id}`, { method: 'DELETE' });
 }
 
 export async function getGroceryItems(familyId: string): Promise<GroceryItem[]> {
-  const res = await fetch(`${API_BASE}/families/${familyId}/groceries`);
+  const res = await fetchWithCredentials(`${API_BASE}/families/${familyId}/groceries`);
   return res.json();
 }
 
 export async function createGroceryItem(familyId: string, item: Partial<GroceryItem>): Promise<GroceryItem> {
-  const res = await fetch(`${API_BASE}/families/${familyId}/groceries`, {
+  const res = await fetchWithCredentials(`${API_BASE}/families/${familyId}/groceries`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(item),
@@ -99,7 +107,7 @@ export async function createGroceryItem(familyId: string, item: Partial<GroceryI
 }
 
 export async function updateGroceryItem(id: string, updates: Partial<GroceryItem>): Promise<GroceryItem> {
-  const res = await fetch(`${API_BASE}/groceries/${id}`, {
+  const res = await fetchWithCredentials(`${API_BASE}/groceries/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(updates),
@@ -108,7 +116,7 @@ export async function updateGroceryItem(id: string, updates: Partial<GroceryItem
 }
 
 export async function deleteGroceryItem(id: string): Promise<void> {
-  await fetch(`${API_BASE}/groceries/${id}`, { method: 'DELETE' });
+  await fetchWithCredentials(`${API_BASE}/groceries/${id}`, { method: 'DELETE' });
 }
 
 export interface GroceryEssential {
@@ -141,12 +149,12 @@ export interface GroceryBuyAgain {
 }
 
 export async function getGroceryEssentials(familyId: string): Promise<GroceryEssential[]> {
-  const res = await fetch(`${API_BASE}/families/${familyId}/grocery-essentials`);
+  const res = await fetchWithCredentials(`${API_BASE}/families/${familyId}/grocery-essentials`);
   return res.json();
 }
 
 export async function createGroceryEssential(familyId: string, essential: Partial<GroceryEssential>): Promise<GroceryEssential> {
-  const res = await fetch(`${API_BASE}/families/${familyId}/grocery-essentials`, {
+  const res = await fetchWithCredentials(`${API_BASE}/families/${familyId}/grocery-essentials`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(essential),
@@ -155,16 +163,16 @@ export async function createGroceryEssential(familyId: string, essential: Partia
 }
 
 export async function deleteGroceryEssential(id: string): Promise<void> {
-  await fetch(`${API_BASE}/grocery-essentials/${id}`, { method: 'DELETE' });
+  await fetchWithCredentials(`${API_BASE}/grocery-essentials/${id}`, { method: 'DELETE' });
 }
 
 export async function getGroceryStores(familyId: string): Promise<GroceryStore[]> {
-  const res = await fetch(`${API_BASE}/families/${familyId}/grocery-stores`);
+  const res = await fetchWithCredentials(`${API_BASE}/families/${familyId}/grocery-stores`);
   return res.json();
 }
 
 export async function createGroceryStore(familyId: string, store: Partial<GroceryStore>): Promise<GroceryStore> {
-  const res = await fetch(`${API_BASE}/families/${familyId}/grocery-stores`, {
+  const res = await fetchWithCredentials(`${API_BASE}/families/${familyId}/grocery-stores`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(store),
@@ -173,16 +181,16 @@ export async function createGroceryStore(familyId: string, store: Partial<Grocer
 }
 
 export async function deleteGroceryStore(id: string): Promise<void> {
-  await fetch(`${API_BASE}/grocery-stores/${id}`, { method: 'DELETE' });
+  await fetchWithCredentials(`${API_BASE}/grocery-stores/${id}`, { method: 'DELETE' });
 }
 
 export async function getGroceryBuyAgain(familyId: string): Promise<GroceryBuyAgain[]> {
-  const res = await fetch(`${API_BASE}/families/${familyId}/grocery-buy-again`);
+  const res = await fetchWithCredentials(`${API_BASE}/families/${familyId}/grocery-buy-again`);
   return res.json();
 }
 
 export async function createGroceryBuyAgain(familyId: string, item: Partial<GroceryBuyAgain>): Promise<GroceryBuyAgain> {
-  const res = await fetch(`${API_BASE}/families/${familyId}/grocery-buy-again`, {
+  const res = await fetchWithCredentials(`${API_BASE}/families/${familyId}/grocery-buy-again`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(item),
@@ -191,7 +199,7 @@ export async function createGroceryBuyAgain(familyId: string, item: Partial<Groc
 }
 
 export async function updateGroceryBuyAgain(id: string, updates: Partial<GroceryBuyAgain>): Promise<GroceryBuyAgain> {
-  const res = await fetch(`${API_BASE}/grocery-buy-again/${id}`, {
+  const res = await fetchWithCredentials(`${API_BASE}/grocery-buy-again/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(updates),
@@ -200,16 +208,16 @@ export async function updateGroceryBuyAgain(id: string, updates: Partial<Grocery
 }
 
 export async function deleteGroceryBuyAgain(id: string): Promise<void> {
-  await fetch(`${API_BASE}/grocery-buy-again/${id}`, { method: 'DELETE' });
+  await fetchWithCredentials(`${API_BASE}/grocery-buy-again/${id}`, { method: 'DELETE' });
 }
 
 export async function getMedicines(familyId: string): Promise<Medicine[]> {
-  const res = await fetch(`${API_BASE}/families/${familyId}/medicines`);
+  const res = await fetchWithCredentials(`${API_BASE}/families/${familyId}/medicines`);
   return res.json();
 }
 
 export async function createMedicine(familyId: string, medicine: Partial<Medicine>): Promise<Medicine> {
-  const res = await fetch(`${API_BASE}/families/${familyId}/medicines`, {
+  const res = await fetchWithCredentials(`${API_BASE}/families/${familyId}/medicines`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(medicine),
@@ -218,7 +226,7 @@ export async function createMedicine(familyId: string, medicine: Partial<Medicin
 }
 
 export async function updateMedicine(id: string, updates: Partial<Medicine>): Promise<Medicine> {
-  const res = await fetch(`${API_BASE}/medicines/${id}`, {
+  const res = await fetchWithCredentials(`${API_BASE}/medicines/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(updates),
@@ -227,16 +235,16 @@ export async function updateMedicine(id: string, updates: Partial<Medicine>): Pr
 }
 
 export async function deleteMedicine(id: string): Promise<void> {
-  await fetch(`${API_BASE}/medicines/${id}`, { method: 'DELETE' });
+  await fetchWithCredentials(`${API_BASE}/medicines/${id}`, { method: 'DELETE' });
 }
 
 export async function getMedicineLogs(familyId: string): Promise<MedicineLog[]> {
-  const res = await fetch(`${API_BASE}/families/${familyId}/medicine-logs`);
+  const res = await fetchWithCredentials(`${API_BASE}/families/${familyId}/medicine-logs`);
   return res.json();
 }
 
 export async function createMedicineLog(familyId: string, log: Partial<MedicineLog>): Promise<MedicineLog> {
-  const res = await fetch(`${API_BASE}/families/${familyId}/medicine-logs`, {
+  const res = await fetchWithCredentials(`${API_BASE}/families/${familyId}/medicine-logs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(log),
@@ -245,12 +253,12 @@ export async function createMedicineLog(familyId: string, log: Partial<MedicineL
 }
 
 export async function getReminders(familyId: string): Promise<Reminder[]> {
-  const res = await fetch(`${API_BASE}/families/${familyId}/reminders`);
+  const res = await fetchWithCredentials(`${API_BASE}/families/${familyId}/reminders`);
   return res.json();
 }
 
 export async function createReminder(familyId: string, reminder: Partial<Reminder>): Promise<Reminder> {
-  const res = await fetch(`${API_BASE}/families/${familyId}/reminders`, {
+  const res = await fetchWithCredentials(`${API_BASE}/families/${familyId}/reminders`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(reminder),
@@ -259,7 +267,7 @@ export async function createReminder(familyId: string, reminder: Partial<Reminde
 }
 
 export async function updateReminder(id: string, updates: Partial<Reminder>): Promise<Reminder> {
-  const res = await fetch(`${API_BASE}/reminders/${id}`, {
+  const res = await fetchWithCredentials(`${API_BASE}/reminders/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(updates),
@@ -268,7 +276,7 @@ export async function updateReminder(id: string, updates: Partial<Reminder>): Pr
 }
 
 export async function deleteReminder(id: string): Promise<void> {
-  await fetch(`${API_BASE}/reminders/${id}`, { method: 'DELETE' });
+  await fetchWithCredentials(`${API_BASE}/reminders/${id}`, { method: 'DELETE' });
 }
 
 export interface ScheduleResponse {
@@ -282,7 +290,7 @@ export interface ScheduleResponse {
 
 export async function aiSchedule(text: string, familyId?: string): Promise<ScheduleResponse> {
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const res = await fetch(`${API_BASE}/ai/schedule`, {
+  const res = await fetchWithCredentials(`${API_BASE}/ai/schedule`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text, familyId, timezone }),
@@ -316,7 +324,7 @@ export interface RegisterMember {
 }
 
 export async function updateUserPin(userId: string, pin: string): Promise<{ success: boolean }> {
-  const res = await fetch(`${API_BASE}/users/${userId}/pin`, {
+  const res = await fetchWithCredentials(`${API_BASE}/users/${userId}/pin`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ pin }),
@@ -329,7 +337,7 @@ export async function updateUserPin(userId: string, pin: string): Promise<{ succ
 }
 
 export async function updateUserPoints(userId: string, points: number): Promise<{ success: boolean }> {
-  const res = await fetch(`${API_BASE}/users/${userId}/points`, {
+  const res = await fetchWithCredentials(`${API_BASE}/users/${userId}/points`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ points }),
@@ -350,7 +358,7 @@ export interface RegisterData {
 }
 
 export async function register(data: RegisterData): Promise<AuthResponse> {
-  const res = await fetch(`${API_BASE}/auth/register`, {
+  const res = await fetchWithCredentials(`${API_BASE}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -363,7 +371,7 @@ export async function register(data: RegisterData): Promise<AuthResponse> {
 }
 
 export async function login(email: string, password: string): Promise<AuthResponse> {
-  const res = await fetch(`${API_BASE}/auth/login`, {
+  const res = await fetchWithCredentials(`${API_BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
@@ -376,7 +384,7 @@ export async function login(email: string, password: string): Promise<AuthRespon
 }
 
 export async function logout(): Promise<void> {
-  await fetch(`${API_BASE}/auth/logout`, { method: 'POST' });
+  await fetchWithCredentials(`${API_BASE}/auth/logout`, { method: 'POST' });
 }
 
 export interface MeResponse {
@@ -386,7 +394,7 @@ export interface MeResponse {
 }
 
 export async function getMe(): Promise<MeResponse> {
-  const res = await fetch(`${API_BASE}/auth/me`);
+  const res = await fetchWithCredentials(`${API_BASE}/auth/me`);
   return res.json();
 }
 
@@ -397,7 +405,7 @@ export interface KidLoginResponse {
 }
 
 export async function kidLogin(familyName: string, kidName: string, pin: string): Promise<KidLoginResponse> {
-  const res = await fetch(`${API_BASE}/auth/kid-login`, {
+  const res = await fetchWithCredentials(`${API_BASE}/auth/kid-login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ familyName, kidName, pin }),
@@ -416,6 +424,6 @@ export interface Kid {
 }
 
 export async function getKidsByFamily(familyId: string): Promise<Kid[]> {
-  const res = await fetch(`${API_BASE}/families/${familyId}/kids`);
+  const res = await fetchWithCredentials(`${API_BASE}/families/${familyId}/kids`);
   return res.json();
 }
