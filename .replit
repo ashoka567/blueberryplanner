@@ -54,8 +54,4 @@ integrations = ["resend:1.0.0"]
 [userenv]
 
 [userenv.shared]
-<<<<<<< HEAD
-
-=======
-OPENAI_API_KEY = "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"
->>>>>>> 673d82f (Published your App)
+OPENAI_API_KEY = "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"
