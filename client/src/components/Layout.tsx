@@ -237,7 +237,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </Button>
             )}
           </header>
-          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-8 lg:p-8 bg-background overflow-visible">
+          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-8 lg:p-8 bg-background overflow-auto" style={{ WebkitOverflowScrolling: 'touch', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
             {children}
           </main>
         </div>
