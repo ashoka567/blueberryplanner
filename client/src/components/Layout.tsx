@@ -208,7 +208,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <NavContent />
         </div>
         <div className="flex flex-col overflow-visible">
-          <header className="flex h-12 items-center gap-3 border-b bg-background px-4 lg:hidden relative z-10">
+          <header className="flex min-h-12 items-center gap-3 border-b bg-background px-4 lg:hidden relative z-10" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="shrink-0 lg:hidden text-[#D2691E]" data-testid="button-menu">
