@@ -420,8 +420,8 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="grid gap-6 md:grid-cols-2">
+    <div className="flex flex-col gap-3 lg:gap-6">
+      <div className="grid gap-3 lg:gap-6 md:grid-cols-2">
         <Card className="bg-gradient-to-br from-[#D2691E] to-[#E8954C] border-none shadow-lg shadow-[#D2691E]/20 text-white overflow-hidden relative">
           <div className="absolute top-0 right-0 p-4 opacity-10">
             <Plus className="h-24 w-24 -mr-8 -mt-8 rotate-12" />
