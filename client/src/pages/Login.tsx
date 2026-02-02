@@ -70,7 +70,11 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               <Label htmlFor="email">Email Address</Label>
               <Input
                 id="email"
-                type="email"
+                type="text"
+                inputMode="email"
+                autoComplete="email"
+                autoCapitalize="none"
+                autoCorrect="off"
                 placeholder="you@example.com"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
