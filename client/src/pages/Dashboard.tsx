@@ -427,7 +427,7 @@ export default function Dashboard() {
                 <span className="text-xs font-medium">Reminder</span>
               </Button>
               <Button 
-                onClick={() => setAddType('medication')} 
+                onClick={() => setLocation('/medications')} 
                 variant="secondary" 
                 className="bg-white/90 hover:bg-white text-[#D2691E] border-none flex flex-col items-center justify-center gap-1 h-16 rounded-xl shadow-md" 
                 data-testid="button-add-meds"
@@ -794,86 +794,7 @@ export default function Dashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Add Medication Modal */}
-      <Dialog open={addType === 'medication'} onOpenChange={(open) => !open && setAddType(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Pill className="h-5 w-5 text-pink-600" /> Add Medication
-            </DialogTitle>
-            <DialogDescription>Add a new medication to your schedule.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            <div className="space-y-2">
-              <Label>Medicine Name</Label>
-              <Input 
-                placeholder="e.g., Vitamin D" 
-                value={medicineForm.name}
-                onChange={(e) => setMedicineForm({ ...medicineForm, name: e.target.value })}
-                className="h-11"
-                data-testid="input-medicine-name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Schedule</Label>
-              <div className="flex gap-2">
-                <Button 
-                  type="button"
-                  variant={medicineForm.morning ? "default" : "outline"}
-                  className={cn("flex-1 h-11 gap-2", medicineForm.morning && "bg-[#D2691E] hover:bg-[#B8581A]")}
-                  onClick={() => setMedicineForm({ ...medicineForm, morning: !medicineForm.morning })}
-                >
-                  <Coffee className="h-4 w-4" /> Morning
-                </Button>
-                <Button 
-                  type="button"
-                  variant={medicineForm.afternoon ? "default" : "outline"}
-                  className={cn("flex-1 h-11 gap-2", medicineForm.afternoon && "bg-[#D2691E] hover:bg-[#B8581A]")}
-                  onClick={() => setMedicineForm({ ...medicineForm, afternoon: !medicineForm.afternoon })}
-                >
-                  <Sun className="h-4 w-4" /> Afternoon
-                </Button>
-                <Button 
-                  type="button"
-                  variant={medicineForm.evening ? "default" : "outline"}
-                  className={cn("flex-1 h-11 gap-2", medicineForm.evening && "bg-[#D2691E] hover:bg-[#B8581A]")}
-                  onClick={() => setMedicineForm({ ...medicineForm, evening: !medicineForm.evening })}
-                >
-                  <Moon className="h-4 w-4" /> Evening
-                </Button>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Start Date</Label>
-                <Input 
-                  type="date"
-                  value={medicineForm.startDate}
-                  onChange={(e) => setMedicineForm({ ...medicineForm, startDate: e.target.value })}
-                  className="h-11"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>End Date (optional)</Label>
-                <Input 
-                  type="date"
-                  value={medicineForm.endDate}
-                  onChange={(e) => setMedicineForm({ ...medicineForm, endDate: e.target.value })}
-                  className="h-11"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-3 pt-4">
-              <Button variant="outline" className="h-11 px-6" onClick={() => setAddType(null)}>Cancel</Button>
-              <Button className="bg-[#D2691E] hover:bg-[#B8581A] h-11 px-6" onClick={handleAddMedicine} disabled={createMedicine.isPending}>
-                {createMedicine.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                Save
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
+      
       
     </div>
   );
