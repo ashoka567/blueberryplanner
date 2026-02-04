@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Calendar, 
   Check, 
@@ -18,15 +20,23 @@ import {
   Sparkles,
   Send,
   ShoppingCart,
-  Loader2
+  Loader2,
+  Bell,
+  CheckSquare,
+  Coffee,
+  Sun,
+  Moon,
+  CalendarDays
 } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCurrentFamily, useFamilyMembers, useReminders, useMedicines, useMedicineLogs, useChores, useCreateReminder, useCreateMedicineLog } from "@/hooks/useData";
+import { useCurrentFamily, useFamilyMembers, useReminders, useMedicines, useMedicineLogs, useChores, useCreateReminder, useCreateMedicineLog, useCreateChore, useCreateMedicine, useCreateGroceryItem } from "@/hooks/useData";
 import * as api from "@/lib/api";
+
+type AddType = 'reminder' | 'chore' | 'medication' | 'grocery' | null;
 
 type Mode = 'OVERVIEW' | 'ADD_REMINDER' | 'ADD_CHORE';
 
@@ -57,10 +67,13 @@ export default function Dashboard() {
   const { data: chores = [], isLoading: choresLoading } = useChores(family?.id);
   const createReminder = useCreateReminder(family?.id);
   const createMedicineLog = useCreateMedicineLog(family?.id);
+  const createChore = useCreateChore(family?.id);
+  const createMedicine = useCreateMedicine(family?.id);
+  const createGroceryItem = useCreateGroceryItem(family?.id);
   
   const [mode, setMode] = useState<Mode>('OVERVIEW');
-  const [quickActionsOpen, setQuickActionsOpen] = useState(false);
   const [showAllSchedule, setShowAllSchedule] = useState(false);
+  const [addType, setAddType] = useState<AddType>(null);
   
   const [smartInputText, setSmartInputText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -69,8 +82,10 @@ export default function Dashboard() {
   const [lastResult, setLastResult] = useState<{ success: boolean; message: string; items?: ParsedItem[] } | null>(null);
   const recognitionRef = useRef<any>(null);
   
-  const [reminderForm, setReminderForm] = useState({ title: '', date: '', time: '', members: [] as string[] });
-  const [choreForm, setChoreForm] = useState({ title: '', member: '', startTime: '', endDate: '' });
+  const [reminderForm, setReminderForm] = useState({ title: '', description: '', date: '', time: '' });
+  const [choreForm, setChoreForm] = useState({ title: '', assignedTo: '', points: 10, dueDate: '', dueTime: '' });
+  const [medicineForm, setMedicineForm] = useState({ name: '', morning: false, afternoon: false, evening: false, quantity: '', startDate: new Date().toISOString().split('T')[0], endDate: '' });
+  const [groceryForm, setGroceryForm] = useState({ name: '', quantity: '' });
 
   useEffect(() => {
     const supported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
@@ -167,20 +182,29 @@ export default function Dashboard() {
   };
 
   const resetForms = () => {
-    setReminderForm({ title: '', date: '', time: '', members: [] });
-    setChoreForm({ title: '', member: '', startTime: '', endDate: '' });
+    setReminderForm({ title: '', description: '', date: '', time: '' });
+    setChoreForm({ title: '', assignedTo: '', points: 10, dueDate: '', dueTime: '' });
+    setMedicineForm({ name: '', morning: false, afternoon: false, evening: false, quantity: '', startDate: new Date().toISOString().split('T')[0], endDate: '' });
+    setGroceryForm({ name: '', quantity: '' });
     setMode('OVERVIEW');
+    setAddType(null);
   };
 
-  const handleSaveReminder = () => {
-    if (!family?.id) return;
+  const handleAddReminder = () => {
+    if (!family?.id || !reminderForm.title.trim()) {
+      toast({ title: "Error", description: "Please enter a reminder title.", variant: "destructive" });
+      return;
+    }
+    
+    const dateStr = reminderForm.date || format(new Date(), 'yyyy-MM-dd');
+    const timeStr = reminderForm.time || '12:00';
     
     createReminder.mutate({
-      title: reminderForm.title || "New Reminder",
+      title: reminderForm.title,
       type: "Family",
       schedule: { type: "ONCE" },
-      startTime: new Date(`${reminderForm.date}T${reminderForm.time || '12:00'}`),
-      endTime: new Date(`${reminderForm.date}T${reminderForm.time || '13:00'}`),
+      startTime: new Date(`${dateStr}T${timeStr}`),
+      endTime: new Date(`${dateStr}T${timeStr}`),
     }, {
       onSuccess: () => {
         toast({ title: "Reminder Added", description: "Successfully scheduled." });
@@ -189,112 +213,77 @@ export default function Dashboard() {
     });
   };
 
-  if (mode === 'ADD_REMINDER') {
-    return (
-      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-[#D2691E]">Schedule Reminder</h1>
-          <Button variant="ghost" onClick={() => setMode('OVERVIEW')}><X className="h-5 w-5" /></Button>
-        </div>
-        <Card className="border-none shadow-xl">
-          <CardContent className="pt-6 space-y-4">
-            <div className="grid gap-2">
-              <Label>Reminder Title</Label>
-              <Input placeholder="e.g. Soccer Practice" value={reminderForm.title} onChange={e => setReminderForm({...reminderForm, title: e.target.value})} data-testid="input-reminder-title" />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label>Date</Label>
-                <Input type="date" value={reminderForm.date} onChange={e => setReminderForm({...reminderForm, date: e.target.value})} data-testid="input-reminder-date" />
-              </div>
-              <div className="grid gap-2">
-                <Label>Time</Label>
-                <Input type="time" value={reminderForm.time} onChange={e => setReminderForm({...reminderForm, time: e.target.value})} data-testid="input-reminder-time" />
-              </div>
-            </div>
-            <div className="grid gap-2">
-              <Label>Family Members Involved</Label>
-              <div className="flex flex-wrap gap-3 p-3 border rounded-lg bg-muted/30">
-                {members.map(user => (
-                  <div key={user.id} className="flex items-center gap-2">
-                    <Checkbox 
-                      id={`user-${user.id}`} 
-                      checked={reminderForm.members.includes(user.id)}
-                      onCheckedChange={(checked) => {
-                        const newMembers = checked 
-                          ? [...reminderForm.members, user.id]
-                          : reminderForm.members.filter(id => id !== user.id);
-                        setReminderForm({...reminderForm, members: newMembers});
-                      }}
-                    />
-                    <label htmlFor={`user-${user.id}`} className="text-sm font-medium flex items-center gap-1">
-                      <img src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} className="h-5 w-5 rounded-full" />
-                      {user.name}
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="flex gap-3 pt-4">
-              <Button onClick={handleSaveReminder} className="flex-1 bg-[#D2691E] hover:bg-[#B8581A]" disabled={createReminder.isPending} data-testid="button-save-reminder">
-                Save Reminder
-              </Button>
-              <Button variant="outline" className="flex-1" onClick={() => setMode('OVERVIEW')}>Cancel</Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const handleAddChore = () => {
+    if (!family?.id || !choreForm.title.trim() || !choreForm.assignedTo) {
+      toast({ title: "Error", description: "Please fill in task name and assign to someone.", variant: "destructive" });
+      return;
+    }
+    
+    const dateStr = choreForm.dueDate || format(new Date(), 'yyyy-MM-dd');
+    const timeStr = choreForm.dueTime || '12:00';
+    
+    createChore.mutate({
+      title: choreForm.title,
+      assignedTo: choreForm.assignedTo || null,
+      points: choreForm.points,
+      dueDate: dateStr,
+      dueTime: choreForm.dueTime || null,
+      status: "PENDING",
+    }, {
+      onSuccess: () => {
+        toast({ title: "Chore Added", description: "Task assigned successfully." });
+        resetForms();
+      }
+    });
+  };
 
-  if (mode === 'ADD_CHORE') {
-    return (
-      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-[#D2691E]">Assign Chore</h1>
-          <Button variant="ghost" onClick={() => setMode('OVERVIEW')}><X className="h-5 w-5" /></Button>
-        </div>
-        <Card className="max-w-2xl mx-auto shadow-xl">
-          <CardContent className="pt-6 space-y-4">
-            <div className="grid gap-2">
-              <Label>Chore Title</Label>
-              <Input placeholder="e.g. Clean Kitchen" value={choreForm.title} onChange={e => setChoreForm({...choreForm, title: e.target.value})} />
-            </div>
-            <div className="grid gap-2">
-              <Label>Assign To Family Member</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {members.map(user => (
-                  <Button 
-                    key={user.id} 
-                    variant={choreForm.member === user.id ? "default" : "outline"}
-                    className={choreForm.member === user.id ? "bg-[#D2691E] hover:bg-[#B8581A]" : ""}
-                    onClick={() => setChoreForm({...choreForm, member: user.id})}
-                  >
-                    <img src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} className="h-4 w-4 rounded-full mr-2" />
-                    {user.name}
-                  </Button>
-                ))}
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label>Start Time</Label>
-                <Input type="time" value={choreForm.startTime} onChange={e => setChoreForm({...choreForm, startTime: e.target.value})} />
-              </div>
-              <div className="grid gap-2">
-                <Label>End Date</Label>
-                <Input type="date" value={choreForm.endDate} onChange={e => setChoreForm({...choreForm, endDate: e.target.value})} />
-              </div>
-            </div>
-            <Button className="w-full bg-[#D2691E] hover:bg-[#B8581A]" onClick={() => {
-              toast({ title: "Chore Assigned", description: "Task successfully delegated." });
-              resetForms();
-            }}>Save Assignment</Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const handleAddMedicine = () => {
+    if (!family?.id || !medicineForm.name.trim()) {
+      toast({ title: "Error", description: "Please enter a medicine name.", variant: "destructive" });
+      return;
+    }
+    if (!medicineForm.morning && !medicineForm.afternoon && !medicineForm.evening) {
+      toast({ title: "Error", description: "Please select at least one time of day.", variant: "destructive" });
+      return;
+    }
+    
+    const times: string[] = [];
+    if (medicineForm.morning) times.push('08:00');
+    if (medicineForm.afternoon) times.push('14:00');
+    if (medicineForm.evening) times.push('20:00');
+    
+    createMedicine.mutate({
+      name: medicineForm.name,
+      schedule: { type: 'DAILY', times },
+      inventory: parseInt(medicineForm.quantity) || 0,
+      startDate: medicineForm.startDate || format(new Date(), 'yyyy-MM-dd'),
+      endDate: medicineForm.endDate || null,
+      active: true,
+    }, {
+      onSuccess: () => {
+        toast({ title: "Medication Added", description: "Medication schedule created." });
+        resetForms();
+      }
+    });
+  };
+
+  const handleAddGrocery = () => {
+    if (!family?.id || !groceryForm.name.trim()) {
+      toast({ title: "Error", description: "Please enter an item name.", variant: "destructive" });
+      return;
+    }
+    
+    createGroceryItem.mutate({
+      name: groceryForm.name,
+      quantity: groceryForm.quantity || undefined,
+      status: 'NEEDED',
+    }, {
+      onSuccess: () => {
+        toast({ title: "Item Added", description: "Added to grocery list." });
+        resetForms();
+      }
+    });
+  };
 
   const isLoading = remindersLoading || medsLoading || choresLoading;
 
@@ -423,37 +412,58 @@ export default function Dashboard() {
     <div className="flex flex-col gap-3 lg:gap-6">
       <div className="grid gap-3 lg:gap-6 md:grid-cols-2">
         <Card className="bg-gradient-to-br from-[#D2691E] to-[#E8954C] border-none shadow-lg shadow-[#D2691E]/20 text-white overflow-hidden relative">
-          <div className="absolute top-0 right-0 p-4 opacity-10">
-            <Plus className="h-24 w-24 -mr-8 -mt-8 rotate-12" />
-          </div>
-          <CardHeader 
-            className="pb-2 cursor-pointer" 
-            onClick={() => setQuickActionsOpen(!quickActionsOpen)}
-            data-testid="button-toggle-quick-actions"
-          >
-            <CardTitle className="text-white text-lg flex items-center justify-center w-full relative">
-              <span>Quick Actions</span>
-              <X className={cn("h-5 w-5 transition-transform absolute right-0", quickActionsOpen ? "rotate-0" : "rotate-45")} />
-            </CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-white text-lg text-center">Quick Actions</CardTitle>
           </CardHeader>
-          {quickActionsOpen && (
-            <CardContent className="pt-2 pb-3">
-              <div className="grid grid-cols-2 gap-2">
-                <Button onClick={() => setMode('ADD_REMINDER')} variant="secondary" className="bg-white/20 hover:bg-white/30 border-none text-white text-xs justify-center gap-1.5 h-8" data-testid="button-add-reminder">
-                  <Plus className="h-3 w-3" /> Reminder
-                </Button>
-                <Button onClick={() => setLocation('/medications')} variant="secondary" className="bg-white/20 hover:bg-white/30 border-none text-white text-xs justify-center gap-1.5 h-8" data-testid="button-log-meds">
-                  <Pill className="h-3 w-3" /> Meds
-                </Button>
-                <Button onClick={() => setMode('ADD_CHORE')} variant="secondary" className="bg-white/20 hover:bg-white/30 border-none text-white text-xs justify-center gap-1.5 h-8" data-testid="button-add-chore">
-                  <Check className="h-3 w-3" /> Chore
-                </Button>
-                <Button variant="secondary" className="bg-white/20 hover:bg-white/30 border-none text-white text-xs justify-center gap-1.5 h-8" onClick={() => setLocation('/groceries')} data-testid="button-add-grocery">
-                  <ShoppingCart className="h-3 w-3" /> Grocery
-                </Button>
-              </div>
-                          </CardContent>
-          )}
+          <CardContent className="pt-2 pb-4">
+            <div className="grid grid-cols-3 gap-3">
+              <Button 
+                onClick={() => setAddType('reminder')} 
+                variant="secondary" 
+                className="bg-white/90 hover:bg-white text-[#D2691E] border-none flex flex-col items-center justify-center gap-1 h-16 rounded-xl shadow-md" 
+                data-testid="button-add-reminder"
+              >
+                <Bell className="h-5 w-5" />
+                <span className="text-xs font-medium">Reminder</span>
+              </Button>
+              <Button 
+                onClick={() => setAddType('medication')} 
+                variant="secondary" 
+                className="bg-white/90 hover:bg-white text-[#D2691E] border-none flex flex-col items-center justify-center gap-1 h-16 rounded-xl shadow-md" 
+                data-testid="button-add-meds"
+              >
+                <Pill className="h-5 w-5" />
+                <span className="text-xs font-medium">Meds</span>
+              </Button>
+              <Button 
+                onClick={() => setAddType('chore')} 
+                variant="secondary" 
+                className="bg-white/90 hover:bg-white text-[#D2691E] border-none flex flex-col items-center justify-center gap-1 h-16 rounded-xl shadow-md" 
+                data-testid="button-add-chore"
+              >
+                <CheckSquare className="h-5 w-5" />
+                <span className="text-xs font-medium">Chore</span>
+              </Button>
+              <Button 
+                onClick={() => setAddType('grocery')} 
+                variant="secondary" 
+                className="bg-white/90 hover:bg-white text-[#D2691E] border-none flex flex-col items-center justify-center gap-1 h-16 rounded-xl shadow-md" 
+                data-testid="button-add-grocery"
+              >
+                <ShoppingCart className="h-5 w-5" />
+                <span className="text-xs font-medium">Grocery</span>
+              </Button>
+              <Button 
+                onClick={() => setLocation('/calendar')} 
+                variant="secondary" 
+                className="bg-white/90 hover:bg-white text-[#D2691E] border-none flex flex-col items-center justify-center gap-1 h-16 rounded-xl shadow-md col-span-2" 
+                data-testid="button-go-calendar"
+              >
+                <CalendarDays className="h-5 w-5" />
+                <span className="text-xs font-medium">Calendar</span>
+              </Button>
+            </div>
+          </CardContent>
         </Card>
 
         <Card className="shadow-lg border-none bg-white/50 backdrop-blur-sm overflow-hidden">
@@ -629,6 +639,280 @@ export default function Dashboard() {
           )}
         </CardContent>
       </Card>
+
+      {/* Add Reminder Modal */}
+      <Dialog open={addType === 'reminder'} onOpenChange={(open) => !open && setAddType(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5 text-[#D2691E]" /> Add Reminder
+            </DialogTitle>
+            <DialogDescription>Create a new reminder for your family calendar.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label>Title</Label>
+              <Input 
+                placeholder="e.g., Doctor's appointment" 
+                value={reminderForm.title}
+                onChange={(e) => setReminderForm({ ...reminderForm, title: e.target.value })}
+                className="h-11"
+                data-testid="input-reminder-title"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Description (optional)</Label>
+              <Textarea 
+                placeholder="Add details..."
+                value={reminderForm.description}
+                onChange={(e) => setReminderForm({ ...reminderForm, description: e.target.value })}
+                className="resize-none h-20"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <Input 
+                  type="date" 
+                  value={reminderForm.date || format(new Date(), 'yyyy-MM-dd')}
+                  onChange={(e) => setReminderForm({ ...reminderForm, date: e.target.value })}
+                  className="h-11"
+                  data-testid="input-reminder-date"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Time</Label>
+                <Input 
+                  type="time" 
+                  value={reminderForm.time}
+                  onChange={(e) => setReminderForm({ ...reminderForm, time: e.target.value })}
+                  className="h-11"
+                  data-testid="input-reminder-time"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 pt-4">
+              <Button variant="outline" className="h-11 px-6" onClick={() => setAddType(null)}>Cancel</Button>
+              <Button className="bg-[#D2691E] hover:bg-[#B8581A] h-11 px-6" onClick={handleAddReminder} disabled={createReminder.isPending}>
+                {createReminder.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Save
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Chore Modal */}
+      <Dialog open={addType === 'chore'} onOpenChange={(open) => !open && setAddType(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckSquare className="h-5 w-5 text-amber-600" /> Add Chore
+            </DialogTitle>
+            <DialogDescription>Assign a new task to a family member.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label>Task Name</Label>
+              <Input 
+                placeholder="e.g., Clean your room, Take out trash" 
+                value={choreForm.title}
+                onChange={(e) => setChoreForm({ ...choreForm, title: e.target.value })}
+                className="h-11"
+                data-testid="input-chore-title"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Assign To</Label>
+              <Select value={choreForm.assignedTo} onValueChange={(val) => setChoreForm({ ...choreForm, assignedTo: val })}>
+                <SelectTrigger className="h-11">
+                  <SelectValue placeholder="Select family member" />
+                </SelectTrigger>
+                <SelectContent sideOffset={8} className="bg-white shadow-lg border rounded-md">
+                  {members.filter(m => m.isChild).map(m => (
+                    <SelectItem key={m.id} value={m.id}>
+                      <div className="flex items-center gap-2">
+                        <img src={m.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.name}`} className="h-5 w-5 rounded-full" />
+                        {m.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                  {members.filter(m => !m.isChild).map(m => (
+                    <SelectItem key={m.id} value={m.id}>
+                      <div className="flex items-center gap-2">
+                        <img src={m.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.name}`} className="h-5 w-5 rounded-full" />
+                        {m.name} (Guardian)
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Due Date</Label>
+                <Input 
+                  type="date" 
+                  value={choreForm.dueDate || format(new Date(), 'yyyy-MM-dd')}
+                  onChange={(e) => setChoreForm({ ...choreForm, dueDate: e.target.value })}
+                  className="h-11"
+                  data-testid="input-chore-date"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Time (optional)</Label>
+                <Input 
+                  type="time" 
+                  value={choreForm.dueTime || ''}
+                  onChange={(e) => setChoreForm({ ...choreForm, dueTime: e.target.value })}
+                  className="h-11"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Points</Label>
+              <Select value={String(choreForm.points)} onValueChange={(val) => setChoreForm({ ...choreForm, points: parseInt(val) })}>
+                <SelectTrigger className="h-11">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent sideOffset={8} className="bg-white shadow-lg border rounded-md">
+                  <SelectItem value="5">5 points (Easy)</SelectItem>
+                  <SelectItem value="10">10 points (Medium)</SelectItem>
+                  <SelectItem value="15">15 points (Hard)</SelectItem>
+                  <SelectItem value="20">20 points (Very Hard)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-3 pt-4">
+              <Button variant="outline" className="h-11 px-6" onClick={() => setAddType(null)}>Cancel</Button>
+              <Button className="bg-[#D2691E] hover:bg-[#B8581A] h-11 px-6" onClick={handleAddChore} disabled={createChore.isPending}>
+                {createChore.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Save
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Medication Modal */}
+      <Dialog open={addType === 'medication'} onOpenChange={(open) => !open && setAddType(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pill className="h-5 w-5 text-pink-600" /> Add Medication
+            </DialogTitle>
+            <DialogDescription>Add a new medication to your schedule.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label>Medicine Name</Label>
+              <Input 
+                placeholder="e.g., Vitamin D" 
+                value={medicineForm.name}
+                onChange={(e) => setMedicineForm({ ...medicineForm, name: e.target.value })}
+                className="h-11"
+                data-testid="input-medicine-name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Schedule</Label>
+              <div className="flex gap-2">
+                <Button 
+                  type="button"
+                  variant={medicineForm.morning ? "default" : "outline"}
+                  className={cn("flex-1 h-11 gap-2", medicineForm.morning && "bg-[#D2691E] hover:bg-[#B8581A]")}
+                  onClick={() => setMedicineForm({ ...medicineForm, morning: !medicineForm.morning })}
+                >
+                  <Coffee className="h-4 w-4" /> Morning
+                </Button>
+                <Button 
+                  type="button"
+                  variant={medicineForm.afternoon ? "default" : "outline"}
+                  className={cn("flex-1 h-11 gap-2", medicineForm.afternoon && "bg-[#D2691E] hover:bg-[#B8581A]")}
+                  onClick={() => setMedicineForm({ ...medicineForm, afternoon: !medicineForm.afternoon })}
+                >
+                  <Sun className="h-4 w-4" /> Afternoon
+                </Button>
+                <Button 
+                  type="button"
+                  variant={medicineForm.evening ? "default" : "outline"}
+                  className={cn("flex-1 h-11 gap-2", medicineForm.evening && "bg-[#D2691E] hover:bg-[#B8581A]")}
+                  onClick={() => setMedicineForm({ ...medicineForm, evening: !medicineForm.evening })}
+                >
+                  <Moon className="h-4 w-4" /> Evening
+                </Button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Start Date</Label>
+                <Input 
+                  type="date"
+                  value={medicineForm.startDate}
+                  onChange={(e) => setMedicineForm({ ...medicineForm, startDate: e.target.value })}
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>End Date (optional)</Label>
+                <Input 
+                  type="date"
+                  value={medicineForm.endDate}
+                  onChange={(e) => setMedicineForm({ ...medicineForm, endDate: e.target.value })}
+                  className="h-11"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 pt-4">
+              <Button variant="outline" className="h-11 px-6" onClick={() => setAddType(null)}>Cancel</Button>
+              <Button className="bg-[#D2691E] hover:bg-[#B8581A] h-11 px-6" onClick={handleAddMedicine} disabled={createMedicine.isPending}>
+                {createMedicine.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Save
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Grocery Modal */}
+      <Dialog open={addType === 'grocery'} onOpenChange={(open) => !open && setAddType(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5 text-green-600" /> Add Grocery Item
+            </DialogTitle>
+            <DialogDescription>Add an item to your grocery list.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label>Item Name</Label>
+              <Input 
+                placeholder="e.g., Milk, Bread, Eggs" 
+                value={groceryForm.name}
+                onChange={(e) => setGroceryForm({ ...groceryForm, name: e.target.value })}
+                className="h-11"
+                data-testid="input-grocery-name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Quantity (optional)</Label>
+              <Input 
+                placeholder="e.g., 2 gallons, 1 loaf" 
+                value={groceryForm.quantity}
+                onChange={(e) => setGroceryForm({ ...groceryForm, quantity: e.target.value })}
+                className="h-11"
+              />
+            </div>
+            <div className="flex justify-end gap-3 pt-4">
+              <Button variant="outline" className="h-11 px-6" onClick={() => setAddType(null)}>Cancel</Button>
+              <Button className="bg-[#D2691E] hover:bg-[#B8581A] h-11 px-6" onClick={handleAddGrocery} disabled={createGroceryItem.isPending}>
+                {createGroceryItem.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Save
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );
