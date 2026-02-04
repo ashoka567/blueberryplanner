@@ -1,0 +1,12 @@
+{
+	"appId": "com.wpclife.blueberry",
+	"appName": "BlueberryPlanner",
+	"webDir": "dist/public",
+	"packageClassList": [
+		"AppPlugin",
+		"LocalNotificationsPlugin",
+		"PushNotificationsPlugin",
+		"SplashScreenPlugin",
+		"StatusBarPlugin"
+	]
+}
