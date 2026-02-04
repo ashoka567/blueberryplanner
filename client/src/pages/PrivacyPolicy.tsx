@@ -1,14 +1,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, Database, Lock, Eye, Trash2, Mail } from "lucide-react";
+import { Shield, Database, Lock, Eye, Trash2, Mail, AlertTriangle } from "lucide-react";
 
 export default function PrivacyPolicy() {
   return (
     <div className="flex flex-col gap-4 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-display font-bold text-[#D2691E]">Privacy Policy</h1>
+      <h1 className="text-2xl font-display font-bold text-[#D2691E]">Privacy Policy & Disclaimer</h1>
       
       <p className="text-sm text-muted-foreground">
         Last updated: February 2026
       </p>
+
+      {/* Privacy Policy Section */}
+      <h2 className="text-xl font-display font-semibold text-[#D2691E] mt-2">Privacy Policy</h2>
 
       <Card className="border-none shadow-lg">
         <CardHeader className="pb-2">
@@ -161,7 +164,78 @@ export default function PrivacyPolicy() {
         </CardContent>
       </Card>
 
-      <Card className="border-none shadow-lg bg-gradient-to-br from-[#D2691E]/5 to-[#E8954C]/10">
+      {/* Disclaimer Section */}
+      <h2 className="text-xl font-display font-semibold text-[#D2691E] mt-6">Disclaimer</h2>
+
+      <Card className="border-none shadow-lg">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <AlertTriangle className="h-5 w-5 text-amber-500" />
+            General Disclaimer
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground space-y-3">
+          <p>
+            Blueberry Planner is provided "as is" without any warranties, express or implied. 
+            The app owner and developers are not responsible for any damages, losses, or issues 
+            arising from the use of this application.
+          </p>
+          <p>
+            This application is intended as a family organization tool only. It is not a 
+            substitute for professional medical advice, diagnosis, or treatment. Always seek 
+            the advice of qualified health providers with any questions regarding medications 
+            or medical conditions.
+          </p>
+          <p>
+            The app owner is not responsible for any missed reminders, incorrect medication 
+            tracking, scheduling errors, or any consequences resulting from reliance on 
+            this application.
+          </p>
+          <p>
+            Users are solely responsible for verifying the accuracy of all information 
+            entered into the application and for ensuring that all tasks, medications, 
+            and schedules are properly managed.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card className="border-none shadow-lg">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Shield className="h-5 w-5 text-blue-500" />
+            Security Disclaimer
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground space-y-3">
+          <p>
+            While we implement reasonable security measures to protect your data, the app 
+            owner and developers are not responsible for any unauthorized access, data 
+            breaches, or security incidents that may occur.
+          </p>
+          <p>
+            Users are responsible for maintaining the confidentiality of their login 
+            credentials and for all activities that occur under their account.
+          </p>
+          <p>
+            We recommend using strong, unique passwords and not sharing your account 
+            credentials with others. The app owner is not liable for any damages resulting 
+            from unauthorized access to your account.
+          </p>
+          <p>
+            Data stored in this application may be transmitted over the internet. The app 
+            owner is not responsible for any interception, loss, or alteration of data 
+            during transmission.
+          </p>
+          <p>
+            By using this application, you acknowledge and accept these disclaimers and 
+            agree that the app owner shall not be held liable for any claims, damages, 
+            or losses arising from your use of the application.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Contact Section */}
+      <Card className="border-none shadow-lg bg-gradient-to-br from-[#D2691E]/5 to-[#E8954C]/10 mt-4">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Mail className="h-5 w-5 text-[#D2691E]" />
@@ -170,7 +244,7 @@ export default function PrivacyPolicy() {
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-3">
           <p>
-            If you have any questions about this Privacy Policy or our data practices, 
+            If you have any questions about this Privacy Policy, our disclaimers, or our data practices, 
             please contact us at:
           </p>
           <a 

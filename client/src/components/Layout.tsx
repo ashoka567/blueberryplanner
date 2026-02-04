@@ -12,7 +12,6 @@ import {
   Camera,
   Settings,
   Bell,
-  AlertTriangle,
   HelpCircle,
   Shield
 } from "lucide-react";
@@ -34,7 +33,6 @@ const NAVIGATION = [
   { name: 'Reminders', href: '/reminders', icon: Bell },
   { name: 'Notifications', href: '/notifications', icon: Bell },
   { name: 'Settings', href: '/settings', icon: Settings },
-  { name: 'Disclaimer', href: '/disclaimer', icon: AlertTriangle },
   { name: 'Support', href: '/support', icon: HelpCircle },
   { name: 'Privacy Policy', href: '/privacy-policy', icon: Shield },
 ];
