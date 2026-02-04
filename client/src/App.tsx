@@ -21,6 +21,7 @@ import NotFound from "@/pages/not-found";
 import SuperAdmin from "@/pages/SuperAdmin";
 import Disclaimer from "@/pages/Disclaimer";
 import Support from "@/pages/Support";
+import PrivacyPolicy from "@/pages/PrivacyPolicy";
 
 function AuthenticatedRouter() {
   const queryClient = useQueryClient();
@@ -84,6 +85,7 @@ function AuthenticatedRouter() {
         <Route path="/settings" component={Settings} />
         <Route path="/disclaimer" component={Disclaimer} />
         <Route path="/support" component={Support} />
+        <Route path="/privacy-policy" component={PrivacyPolicy} />
         <Route path="/login">
           {() => {
             setLocation('/');
