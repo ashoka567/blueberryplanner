@@ -640,21 +640,6 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="shadow-sm border-l-4 border-l-[#D2691E]">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Next Reminder</CardTitle>
-            <Calendar className="h-4 w-4 text-[#D2691E]" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold truncate">{reminders[0]?.title || 'None scheduled'}</div>
-            <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
-              <Clock className="h-3 w-3" /> 
-              {reminders[0]?.startTime ? format(new Date(reminders[0].startTime), "h:mm a") : 'N/A'}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }
