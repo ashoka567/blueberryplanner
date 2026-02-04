@@ -1,0 +1,49 @@
+Run command: 'xcodebuild -resolvePackageDependencies -workspace /Volumes/workspace/repository/ios/App/App.xcworkspace -scheme App -derivedDataPath /Volumes/workspace/DerivedData -hideShellScriptEnvironment'
+
+Command line invocation:
+
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -resolvePackageDependencies -workspace /Volumes/workspace/repository/ios/App/App.xcworkspace -scheme App -derivedDataPath /Volumes/workspace/DerivedData -hideShellScriptEnvironment
+
+Resolve Package Graph
+
+Fetching from https://github.com/ionic-team/capacitor-swift-pm.git
+
+Creating working copy of package ‘capacitor-swift-pm’
+
+Checking out 8.0.2 of package ‘capacitor-swift-pm’
+
+the package at '/Volumes/workspace/repository/node_modules/@capacitor/status-bar' cannot be accessed (Error Domain=NSCocoaErrorDomain Code=260 "The folder “status-bar” doesn’t exist." UserInfo={NSUserStringVariant=(
+
+    Folder
+
+), NSFilePath=/Volumes/workspace/repository/node_modules/@capacitor/status-bar, NSURL=file:///Volumes/workspace/repository/node_modules/@capacitor/status-bar, NSUnderlyingError=0x6000012ef330 {Error Domain=NSOSStatusErrorDomain Code=-43 "fnfErr: File not found"}})the package at '/Volumes/workspace/repository/node_modules/@capacitor/push-notifications' cannot be accessed (Error Domain=NSCocoaErrorDomain Code=260 "The folder “push-notifications” doesn’t exist." UserInfo={NSUserStringVariant=(
+
+    Folder
+
+), NSFilePath=/Volumes/workspace/repository/node_modules/@capacitor/push-notifications, NSURL=file:///Volumes/workspace/repository/node_modules/@capacitor/push-notifications, NSUnderlyingError=0x600001350630 {Error Domain=NSOSStatusErrorDomain Code=-43 "fnfErr: File not found"}})the package at '/Volumes/workspace/repository/node_modules/@capacitor/local-notifications' cannot be accessed (Error Domain=NSCocoaErrorDomain Code=260 "The folder “local-notifications” doesn’t exist." UserInfo={NSUserStringVariant=(
+
+    Folder
+
+), NSFilePath=/Volumes/workspace/repository/node_modules/@capacitor/local-notifications, NSURL=file:///Volumes/workspace/repository/node_modules/@capacitor/local-notifications, NSUnderlyingError=0x6000010070c0 {Error Domain=NSOSStatusErrorDomain Code=-43 "fnfErr: File not found"}})the package at '/Volumes/workspace/repository/node_modules/@capacitor/app' cannot be accessed (Error Domain=NSCocoaErrorDomain Code=260 "The folder “app” doesn’t exist." UserInfo={NSUserStringVariant=(
+
+    Folder
+
+), NSFilePath=/Volumes/workspace/repository/node_modules/@capacitor/app, NSURL=file:///Volumes/workspace/repository/node_modules/@capacitor/app, NSUnderlyingError=0x600001319ce0 {Error Domain=NSOSStatusErrorDomain Code=-43 "fnfErr: File not found"}})the package at '/Volumes/workspace/repository/node_modules/@capacitor/splash-screen' cannot be accessed (Error Domain=NSCocoaErrorDomain Code=260 "The folder “splash-screen” doesn’t exist." UserInfo={NSUserStringVariant=(
+
+    Folder
+
+), NSFilePath=/Volumes/workspace/repository/node_modules/@capacitor/splash-screen, NSURL=file:///Volumes/workspace/repository/node_modules/@capacitor/splash-screen, NSUnderlyingError=0x6000012e6fd0 {Error Domain=NSOSStatusErrorDomain Code=-43 "fnfErr: File not found"}})fatalError2026-02-04 11:17:11.479 xcodebuild[4181:20412] Writing error result bundle to /var/folders/6h/_32gb9js77g6c54h3q7g6q1h0000gn/T/ResultBundle_2026-04-02_11-17-0011.xcresult
+
+xcodebuild: error: Could not resolve package dependencies:
+
+  the package at '/Volumes/workspace/repository/node_modules/@capacitor/status-bar' cannot be accessed (Error Domain=NSCocoaErrorDomain Code=260 "The folder “status-bar” doesn’t exist." UserInfo={NSUserStringVariant=(
+
+  the package at '/Volumes/workspace/repository/node_modules/@capacitor/push-notifications' cannot be accessed (Error Domain=NSCocoaErrorDomain Code=260 "The folder “push-notifications” doesn’t exist." UserInfo={NSUserStringVariant=(
+
+  the package at '/Volumes/workspace/repository/node_modules/@capacitor/local-notifications' cannot be accessed (Error Domain=NSCocoaErrorDomain Code=260 "The folder “local-notifications” doesn’t exist." UserInfo={NSUserStringVariant=(
+
+  the package at '/Volumes/workspace/repository/node_modules/@capacitor/app' cannot be accessed (Error Domain=NSCocoaErrorDomain Code=260 "The folder “app” doesn’t exist." UserInfo={NSUserStringVariant=(
+
+  the package at '/Volumes/workspace/repository/node_modules/@capacitor/splash-screen' cannot be accessed (Error Domain=NSCocoaErrorDomain Code=260 "The folder “splash-screen” doesn’t exist." UserInfo={NSUserStringVariant=(
+
+  fatalError
