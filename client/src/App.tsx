@@ -19,6 +19,8 @@ import Register from "@/pages/Register";
 import KidLogin from "@/pages/KidLogin";
 import NotFound from "@/pages/not-found";
 import SuperAdmin from "@/pages/SuperAdmin";
+import Disclaimer from "@/pages/Disclaimer";
+import Support from "@/pages/Support";
 
 function AuthenticatedRouter() {
   const queryClient = useQueryClient();
@@ -80,6 +82,8 @@ function AuthenticatedRouter() {
         <Route path="/reminders" component={Reminders} />
         <Route path="/notifications" component={NotificationsPage} />
         <Route path="/settings" component={Settings} />
+        <Route path="/disclaimer" component={Disclaimer} />
+        <Route path="/support" component={Support} />
         <Route path="/login">
           {() => {
             setLocation('/');

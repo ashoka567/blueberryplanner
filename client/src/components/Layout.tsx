@@ -11,7 +11,9 @@ import {
   User,
   Camera,
   Settings,
-  Bell
+  Bell,
+  AlertTriangle,
+  HelpCircle
 } from "lucide-react";
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -31,6 +33,8 @@ const NAVIGATION = [
   { name: 'Reminders', href: '/reminders', icon: Bell },
   { name: 'Notifications', href: '/notifications', icon: Bell },
   { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Disclaimer', href: '/disclaimer', icon: AlertTriangle },
+  { name: 'Support', href: '/support', icon: HelpCircle },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
