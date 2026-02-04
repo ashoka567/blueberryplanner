@@ -445,7 +445,7 @@ export default function Dashboard() {
                 <span className="text-xs font-medium">Chore</span>
               </Button>
               <Button 
-                onClick={() => setAddType('grocery')} 
+                onClick={() => setLocation('/groceries')} 
                 variant="secondary" 
                 className="bg-white/90 hover:bg-white text-[#D2691E] border-none flex flex-col items-center justify-center gap-1 h-16 rounded-xl shadow-md" 
                 data-testid="button-add-grocery"
@@ -874,46 +874,7 @@ export default function Dashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Add Grocery Modal */}
-      <Dialog open={addType === 'grocery'} onOpenChange={(open) => !open && setAddType(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5 text-green-600" /> Add Grocery Item
-            </DialogTitle>
-            <DialogDescription>Add an item to your grocery list.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            <div className="space-y-2">
-              <Label>Item Name</Label>
-              <Input 
-                placeholder="e.g., Milk, Bread, Eggs" 
-                value={groceryForm.name}
-                onChange={(e) => setGroceryForm({ ...groceryForm, name: e.target.value })}
-                className="h-11"
-                data-testid="input-grocery-name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Quantity (optional)</Label>
-              <Input 
-                placeholder="e.g., 2 gallons, 1 loaf" 
-                value={groceryForm.quantity}
-                onChange={(e) => setGroceryForm({ ...groceryForm, quantity: e.target.value })}
-                className="h-11"
-              />
-            </div>
-            <div className="flex justify-end gap-3 pt-4">
-              <Button variant="outline" className="h-11 px-6" onClick={() => setAddType(null)}>Cancel</Button>
-              <Button className="bg-[#D2691E] hover:bg-[#B8581A] h-11 px-6" onClick={handleAddGrocery} disabled={createGroceryItem.isPending}>
-                {createGroceryItem.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                Save
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
+      
     </div>
   );
 }
