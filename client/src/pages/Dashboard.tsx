@@ -452,17 +452,7 @@ export default function Dashboard() {
                   <ShoppingCart className="h-3 w-3" /> Grocery
                 </Button>
               </div>
-              <ul className="text-xs space-y-2 mt-4 opacity-90 border-t border-white/10 pt-4">
-                <li className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-white shadow-[0_0_8px_white]" />
-                  {medicines.length} medication(s) being tracked
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-white shadow-[0_0_8px_white]" />
-                  {reminders.length} upcoming reminder(s)
-                </li>
-              </ul>
-            </CardContent>
+                          </CardContent>
           )}
         </Card>
 
