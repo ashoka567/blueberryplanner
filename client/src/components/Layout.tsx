@@ -215,11 +215,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
+      <div className="grid w-full lg:grid-cols-[280px_1fr]" style={{ height: '100%', overflow: 'hidden' }}>
         <div className="hidden border-r lg:block">
           <NavContent />
         </div>
-        <div className="flex flex-col h-screen overflow-hidden">
+        <div className="flex flex-col" style={{ height: '100%', minHeight: 0 }}>
           <header className="flex-shrink-0 flex min-h-12 items-center gap-3 border-b bg-background px-4 lg:hidden relative z-10" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
               <SheetTrigger asChild>
@@ -249,7 +249,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </Button>
             )}
           </header>
-          <main className="flex-1 flex flex-col gap-2 p-3 lg:gap-6 lg:p-6 bg-background overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)' }}>
+          <main className="flex-1 flex flex-col gap-2 p-3 lg:gap-6 lg:p-6 bg-background" style={{ overflowY: 'scroll', WebkitOverflowScrolling: 'touch', minHeight: 0, paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)' }}>
             {children}
           </main>
         </div>
