@@ -3,8 +3,7 @@ set -e
 
 echo "=== Xcode Cloud CI Post Clone Script ==="
 
-echo "Installing Node.js and npm dependencies..."
-# Install Node.js using Homebrew (available in Xcode Cloud)
+echo "Installing Node.js..."
 brew install node
 
 echo "Running npm install in repository root..."
