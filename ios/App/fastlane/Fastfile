@@ -1,0 +1,73 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Generate App Store screenshots"
+  lane :screenshots do
+    clean_uitest_target
+    capture_ios_screenshots(
+      workspace: "App.xcworkspace",
+      scheme: "AppUITests",
+      clean: true,
+      reinstall_app: true,
+      erase_simulator: true
+    )
+  end
+
+  private_lane :clean_uitest_target do
+    require 'xcodeproj'
+
+    project_path = File.join(Dir.pwd, '..', 'App.xcodeproj')
+    project = Xcodeproj::Project.open(project_path)
+    changed = false
+
+    uitest_target = project.targets.find { |t| t.name == 'AppUITests' }
+    if uitest_target
+      uitest_target.frameworks_build_phase.files.each do |bf|
+        name = bf.display_name rescue "unknown"
+        unless name.include?("XCTest")
+          UI.message("Removing framework from AppUITests: #{name}")
+          bf.remove_from_project
+          changed = true
+        end
+      end
+
+      uitest_target.copy_files_build_phases.each do |phase|
+        if phase.name == "Embed Frameworks"
+          UI.message("Removing Embed Frameworks phase from AppUITests")
+          phase.remove_from_project
+          changed = true
+        end
+      end
+
+      uitest_target.build_configurations.each do |config|
+        fsp = config.build_settings['FRAMEWORK_SEARCH_PATHS']
+        if fsp.is_a?(Array)
+          cleaned = fsp.reject { |p| p.to_s.include?("PackageFrameworks") }
+          if cleaned.length != fsp.length
+            config.build_settings['FRAMEWORK_SEARCH_PATHS'] = cleaned
+            changed = true
+          end
+        end
+      end
+    end
+
+    frameworks_group = project.groups.find { |g| g.name == 'Frameworks' }
+    if frameworks_group
+      frameworks_group.files.each do |ref|
+        name = ref.name || ref.path || ""
+        if name.include?("Capacitor") || name.include?("Cordova")
+          UI.message("Removing stale framework ref: #{name}")
+          ref.remove_from_project
+          changed = true
+        end
+      end
+    end
+
+    if changed
+      project.save
+      UI.success("Cleaned AppUITests target")
+    else
+      UI.success("AppUITests target is already clean")
+    end
+  end
+end
