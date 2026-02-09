@@ -5,7 +5,6 @@ server/public
 vite.config.ts.*
 *.tar.gz
 
-
 # iOS - Xcode user data (local to each developer)
 ios/App/App.xcworkspace/xcuserdata/
 ios/App/App.xcodeproj/xcuserdata/
@@ -21,19 +20,4 @@ ios/App/fastlane/screenshots/
 
 # iOS - Xcode derived data
 DerivedData/
-
-ios/App/App.xcworkspace/xcshareddata/swiftpm/Package.resolved
-ios/App/App.xcworkspace/xcuserdata/aganagav.xcuserdatad/UserInterfaceState.xcuserstate
-ios/App/fastlane/README.md
-ios/App/fastlane/report.xml
-ios/App/fastlane/screenshots/screenshots.html
-ios/App/Pods/Pods.xcodeproj/xcuserdata/aganagav.xcuserdatad/xcschemes/xcschememanagement.plist
-ios/App/App.xcworkspace/xcshareddata/swiftpm/Package.resolved
-ios/App/App.xcworkspace/xcuserdata/aganagav.xcuserdatad/UserInterfaceState.xcuserstate
-ios/App/Pods/Pods.xcodeproj/xcuserdata/aganagav.xcuserdatad/xcschemes/xcschememanagement.plist
-ios/App/App.xcworkspace/xcshareddata/swiftpm/Package.resolved
-ios/App/App.xcworkspace/xcuserdata/aganagav.xcuserdatad/UserInterfaceState.xcuserstate
-ios/App/Pods/Pods.xcodeproj/xcuserdata/aganagav.xcuserdatad/xcschemes/xcschememanagement.plist
-ios/App/Pods/Pods.xcodeproj/xcuserdata/aganagav.xcuserdatad/xcschemes/xcschememanagement.plist
-ios/App/App.xcworkspace/xcshareddata/swiftpm/Package.resolved
-
+ios/App/DerivedData/

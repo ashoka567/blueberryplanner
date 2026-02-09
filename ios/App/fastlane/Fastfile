@@ -7,7 +7,8 @@ platform :ios do
     capture_ios_screenshots(
       workspace: "App.xcworkspace",
       scheme: "AppUITests",
-      clean: true,
+      clean: false,
+      derived_data_path: "./DerivedData",
       reinstall_app: true,
       erase_simulator: true
     )
