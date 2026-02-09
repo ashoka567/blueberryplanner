@@ -4,3 +4,17 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+ios/App/App.xcworkspace/xcshareddata/swiftpm/Package.resolved
+ios/App/App.xcworkspace/xcuserdata/aganagav.xcuserdatad/UserInterfaceState.xcuserstate
+ios/App/fastlane/README.md
+ios/App/fastlane/report.xml
+ios/App/fastlane/screenshots/screenshots.html
+ios/App/Pods/Pods.xcodeproj/xcuserdata/aganagav.xcuserdatad/xcschemes/xcschememanagement.plist
+ios/App/App.xcworkspace/xcshareddata/swiftpm/Package.resolved
+ios/App/App.xcworkspace/xcuserdata/aganagav.xcuserdatad/UserInterfaceState.xcuserstate
+ios/App/Pods/Pods.xcodeproj/xcuserdata/aganagav.xcuserdatad/xcschemes/xcschememanagement.plist
+ios/App/App.xcworkspace/xcshareddata/swiftpm/Package.resolved
+ios/App/App.xcworkspace/xcuserdata/aganagav.xcuserdatad/UserInterfaceState.xcuserstate
+ios/App/Pods/Pods.xcodeproj/xcuserdata/aganagav.xcuserdatad/xcschemes/xcschememanagement.plist
+ios/App/Pods/Pods.xcodeproj/xcuserdata/aganagav.xcuserdatad/xcschemes/xcschememanagement.plist
+ios/App/App.xcworkspace/xcshareddata/swiftpm/Package.resolved
