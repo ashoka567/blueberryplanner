@@ -9,8 +9,8 @@ platform :ios do
       scheme: "AppUITests",
       clean: false,
       derived_data_path: "./DerivedData",
-      reinstall_app: true,
-      erase_simulator: true
+      reinstall_app: false,
+      erase_simulator: false
     )
   end
 
