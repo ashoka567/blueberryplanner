@@ -1,0 +1,14 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Generate App Store screenshots"
+  lane :screenshots do
+    capture_ios_screenshots(
+      workspace: "App.xcworkspace",
+      scheme: "AppUITests",
+      clean: true,
+      reinstall_app: true,
+      erase_simulator: true
+    )
+  end
+end
