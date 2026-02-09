@@ -1,0 +1,31 @@
+[08:16:25]: Error setting value '["iPhone 16 Pro", "iPhone 16 Pro Max"]' for option 'devices'
++------------------------------------+
+|            Lane Context            |
++------------------+-----------------+
+| DEFAULT_PLATFORM | ios             |
+| PLATFORM_NAME    | ios             |
+| LANE_NAME        | ios screenshots |
++------------------+-----------------+
+[08:16:25]: Called from Fastfile at line 7
+[08:16:25]: ```
+[08:16:25]:     5:	  lane :screenshots do
+[08:16:25]:     6:	    clean_uitest_target
+[08:16:25]:  => 7:	    capture_ios_screenshots(
+[08:16:25]:     8:	      workspace: "App.xcworkspace",
+[08:16:25]:     9:	      scheme: "AppUITests",
+[08:16:25]: ```
+[08:16:25]: Device 'iPhone 16 Pro' not in list of available simulators 'iPhone 17 Pro, iPhone 17 Pro Max, iPhone Air, iPhone 17, iPhone 16e, iPad Pro 13-inch (M5), iPad Pro 11-inch (M5), iPad mini (A17 Pro), iPad (A16), iPad Air 13-inch (M3), iPad Air 11-inch (M3), Apple Watch Series 11 (46mm), Apple Watch Series 11 (42mm), Apple Watch Ultra 3 (49mm), Apple Watch SE 3 (44mm), Apple Watch SE 3 (40mm)'
+
++-------------------------------------------------------------+
+|                      fastlane summary                       |
++------+----------------------------------------+-------------+
+| Step | Action                                 | Time (in s) |
++------+----------------------------------------+-------------+
+| 1    | default_platform                       | 0           |
+| 2    | Switch to ios clean_uitest_target lane | 0           |
+| 💥   | capture_ios_screenshots                | 0           |
++------+----------------------------------------+-------------+
+
+[08:16:26]: fastlane finished with errors
+
+[!] Device 'iPhone 16 Pro' not in list of available simulators 'iPhone 17 Pro, iPhone 17 Pro Max, iPhone Air, iPhone 17, iPhone 16e, iPad Pro 13-inch (M5), iPad Pro 11-inch (M5), iPad mini (A17 Pro), iPad (A16), iPad Air 13-inch (M3), iPad Air 11-inch (M3), Apple Watch Series 11 (46mm), Apple Watch Series 11 (42mm), Apple Watch Ultra 3 (49mm), Apple Watch SE 3 (44mm), Apple Watch SE 3 (40mm)'
