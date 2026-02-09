@@ -3,6 +3,10 @@ default_platform(:ios)
 platform :ios do
   desc "Generate App Store screenshots"
   lane :screenshots do
+    # Clean the project file before building to strip any framework
+    # references that Xcode may have auto-added to the AppUITests target
+    clean_uitest_frameworks
+
     capture_ios_screenshots(
       workspace: "App.xcworkspace",
       scheme: "AppUITests",
@@ -10,5 +14,94 @@ platform :ios do
       reinstall_app: true,
       erase_simulator: true
     )
+  end
+
+  private_lane :clean_uitest_frameworks do
+    require 'xcodeproj'
+
+    project_path = File.join(Dir.pwd, '..', 'App.xcodeproj')
+    project = Xcodeproj::Project.open(project_path)
+
+    uitest_target = project.targets.find { |t| t.name == 'AppUITests' }
+
+    if uitest_target
+      UI.message("Cleaning AppUITests target frameworks...")
+
+      # Remove all framework build files from AppUITests Frameworks phase
+      uitest_target.frameworks_build_phase.files.each do |build_file|
+        name = build_file.display_name rescue "unknown"
+        unless name.include?("XCTest")
+          UI.message("  Removing framework: #{name}")
+          build_file.remove_from_project
+        end
+      end
+
+      # Remove any "Embed Frameworks" copy phase from AppUITests
+      uitest_target.copy_files_build_phases.each do |phase|
+        if phase.name == "Embed Frameworks"
+          UI.message("  Removing Embed Frameworks phase")
+          phase.remove_from_project
+        end
+      end
+
+      # Remove stale framework file references from the Frameworks group
+      frameworks_group = project.groups.find { |g| g.name == 'Frameworks' }
+      if frameworks_group
+        frameworks_group.files.each do |file_ref|
+          name = file_ref.name || file_ref.path || ""
+          if name.include?("Capacitor") || name.include?("Cordova") || name.include?("CapacitorApp")
+            UI.message("  Removing file reference: #{name}")
+            file_ref.remove_from_project
+          end
+        end
+      end
+
+      # Remove SPM package references from the project
+      project.root_object.package_references.each do |pkg_ref|
+        name = pkg_ref.name rescue pkg_ref.display_name rescue ""
+        if name.to_s.include?("CapApp-SPM")
+          UI.message("  Removing SPM package reference: #{name}")
+          pkg_ref.remove_from_project
+        end
+      end
+
+      # Remove SPM product dependencies from App target
+      app_target = project.targets.find { |t| t.name == 'App' }
+      if app_target
+        app_target.package_product_dependencies.each do |dep|
+          name = dep.product_name rescue ""
+          if name.to_s.include?("CapApp-SPM")
+            UI.message("  Removing SPM product dependency: #{name}")
+            dep.remove_from_project
+          end
+        end
+
+        # Also remove CapApp-SPM from App's framework build phase
+        app_target.frameworks_build_phase.files.each do |build_file|
+          name = build_file.display_name rescue "unknown"
+          if name.include?("CapApp-SPM")
+            UI.message("  Removing CapApp-SPM from App frameworks: #{name}")
+            build_file.remove_from_project
+          end
+        end
+      end
+
+      # Remove FRAMEWORK_SEARCH_PATHS that reference PackageFrameworks
+      uitest_target.build_configurations.each do |config|
+        fsp = config.build_settings['FRAMEWORK_SEARCH_PATHS']
+        if fsp.is_a?(Array)
+          cleaned = fsp.reject { |p| p.include?("PackageFrameworks") }
+          if cleaned.length != fsp.length
+            UI.message("  Cleaning FRAMEWORK_SEARCH_PATHS in #{config.name}")
+            config.build_settings['FRAMEWORK_SEARCH_PATHS'] = cleaned
+          end
+        end
+      end
+
+      project.save
+      UI.success("AppUITests target cleaned successfully!")
+    else
+      UI.error("Could not find AppUITests target")
+    end
   end
 end

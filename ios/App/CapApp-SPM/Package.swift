@@ -1,8 +1,9 @@
 // swift-tools-version: 5.9
 import PackageDescription
 
-// Capacitor plugins are managed via CocoaPods (see Podfile)
-// This package only provides the core Capacitor SPM dependency
+// Capacitor is provided entirely by CocoaPods (see Podfile).
+// This package is an empty placeholder required by the Xcode project structure.
+// DO NOT add capacitor-swift-pm or any other Capacitor dependency here.
 let package = Package(
     name: "CapApp-SPM",
     platforms: [.iOS(.v16)],
@@ -11,16 +12,9 @@ let package = Package(
             name: "CapApp-SPM",
             targets: ["CapApp-SPM"])
     ],
-    dependencies: [
-        .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", exact: "8.0.2")
-    ],
     targets: [
         .target(
             name: "CapApp-SPM",
-            dependencies: [
-                .product(name: "Capacitor", package: "capacitor-swift-pm"),
-                .product(name: "Cordova", package: "capacitor-swift-pm")
-            ]
-        )
+            path: "Sources/CapApp-SPM")
     ]
 )
