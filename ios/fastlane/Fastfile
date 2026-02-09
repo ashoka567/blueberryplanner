@@ -1,0 +1,16 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Generate App Store screenshots"
+  lane :screenshots do
+    capture_ios_screenshots(
+      workspace: "App/App.xcworkspace",
+      scheme: "AppUITests",
+      devices: [
+        "iPhone 17 Pro",
+        "iPhone 17 Pro Max"
+      ],
+      clean: true
+    )
+  end
+end

@@ -1,0 +1,7 @@
+devices([
+  "iPhone 17 Pro",
+  "iPhone 17 Pro Max"
+])
+
+languages(["en-US"])
+clear_previous_screenshots true
