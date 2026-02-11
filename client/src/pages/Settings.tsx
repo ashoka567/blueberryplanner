@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrentFamily, useFamilyMembers, useAuthUser } from "@/hooks/useData";
-import { updateUserPin, updateUserPoints } from "@/lib/api";
-import { Loader2, User, Baby, Shield, KeyRound, Check, X, Trophy, Minus } from "lucide-react";
+import { updateUserPin, updateUserPoints, getSecurityQuestions, updateSecurityQuestions } from "@/lib/api";
+import { Loader2, User, Baby, Shield, KeyRound, Check, X, Trophy, Minus, ShieldQuestion, AlertTriangle } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -34,11 +35,70 @@ export default function Settings() {
   const [isUpdating, setIsUpdating] = useState(false);
   const queryClient = useQueryClient();
 
+  const [securityQ1, setSecurityQ1] = useState('');
+  const [securityA1, setSecurityA1] = useState('');
+  const [securityQ2, setSecurityQ2] = useState('');
+  const [securityA2, setSecurityA2] = useState('');
+  const [hasSecurityQuestions, setHasSecurityQuestions] = useState<boolean | null>(null);
+  const [savedQ1, setSavedQ1] = useState<string | null>(null);
+  const [savedQ2, setSavedQ2] = useState<string | null>(null);
+  const [savingQuestions, setSavingQuestions] = useState(false);
+
+  const SECURITY_QUESTIONS = [
+    "What was the name of your first pet?",
+    "What city were you born in?",
+    "What is your mother's maiden name?",
+    "What was the name of your elementary school?",
+    "What is your favorite movie?",
+    "What street did you grow up on?",
+    "What was your childhood nickname?",
+    "What is the name of your favorite childhood friend?",
+    "What was your first car?",
+    "What is your favorite food?",
+  ];
+
   const currentUser = members.find(m => m.id === authData?.user?.id);
   const isGuardian = currentUser && !currentUser.isChild;
 
   const kids = members.filter(m => m.isChild);
   const guardians = members.filter(m => !m.isChild);
+
+  useEffect(() => {
+    if (isGuardian) {
+      getSecurityQuestions().then(data => {
+        setHasSecurityQuestions(data.hasSecurityQuestions);
+        setSavedQ1(data.securityQuestion1);
+        setSavedQ2(data.securityQuestion2);
+        if (data.securityQuestion1) setSecurityQ1(data.securityQuestion1);
+        if (data.securityQuestion2) setSecurityQ2(data.securityQuestion2);
+      }).catch(() => {});
+    }
+  }, [isGuardian]);
+
+  const handleSaveSecurityQuestions = async () => {
+    if (!securityQ1 || !securityA1 || !securityQ2 || !securityA2) {
+      toast({ title: "Missing Information", description: "Please fill in all security question fields.", variant: "destructive" });
+      return;
+    }
+    if (securityQ1 === securityQ2) {
+      toast({ title: "Same Questions", description: "Please choose two different questions.", variant: "destructive" });
+      return;
+    }
+    setSavingQuestions(true);
+    try {
+      await updateSecurityQuestions({ securityQuestion1: securityQ1, securityAnswer1: securityA1, securityQuestion2: securityQ2, securityAnswer2: securityA2 });
+      setHasSecurityQuestions(true);
+      setSavedQ1(securityQ1);
+      setSavedQ2(securityQ2);
+      setSecurityA1('');
+      setSecurityA2('');
+      toast({ title: "Security Questions Saved", description: "You can now use 'Forgot Password' to reset your password." });
+    } catch (error) {
+      toast({ title: "Failed", description: error instanceof Error ? error.message : "Could not save security questions.", variant: "destructive" });
+    } finally {
+      setSavingQuestions(false);
+    }
+  };
 
   const handleUpdatePin = async (userId: string) => {
     if (!/^\d{4}$/.test(newPin)) {
@@ -155,6 +215,83 @@ export default function Settings() {
           </div>
         </CardContent>
       </Card>
+
+      {isGuardian && (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ShieldQuestion className="h-5 w-5 text-[#D2691E]" />
+            Security Questions
+          </CardTitle>
+          <CardDescription>
+            {hasSecurityQuestions
+              ? "Your security questions are set up. You can update them below."
+              : "Set up security questions so you can reset your password if you forget it."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {hasSecurityQuestions === false && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+              <p className="text-sm text-amber-800">
+                You don't have security questions set up yet. Without them, you won't be able to reset your password if you forget it.
+              </p>
+            </div>
+          )}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Security Question 1</Label>
+              {savedQ1 && <p className="text-xs text-muted-foreground">Currently: {savedQ1}</p>}
+              <Select value={securityQ1} onValueChange={setSecurityQ1}>
+                <SelectTrigger data-testid="select-settings-q1">
+                  <SelectValue placeholder="Choose a question..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {SECURITY_QUESTIONS.map((q) => (
+                    <SelectItem key={q} value={q}>{q}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                placeholder="Your answer"
+                value={securityA1}
+                onChange={(e) => setSecurityA1(e.target.value)}
+                data-testid="input-settings-a1"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Security Question 2</Label>
+              {savedQ2 && <p className="text-xs text-muted-foreground">Currently: {savedQ2}</p>}
+              <Select value={securityQ2} onValueChange={setSecurityQ2}>
+                <SelectTrigger data-testid="select-settings-q2">
+                  <SelectValue placeholder="Choose a different question..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {SECURITY_QUESTIONS.filter(q => q !== securityQ1).map((q) => (
+                    <SelectItem key={q} value={q}>{q}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                placeholder="Your answer"
+                value={securityA2}
+                onChange={(e) => setSecurityA2(e.target.value)}
+                data-testid="input-settings-a2"
+              />
+            </div>
+            <Button
+              onClick={handleSaveSecurityQuestions}
+              disabled={savingQuestions}
+              className="bg-[#D2691E] hover:bg-[#B8581A]"
+              data-testid="button-save-security-questions"
+            >
+              {savingQuestions ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
+              {hasSecurityQuestions ? "Update Security Questions" : "Save Security Questions"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+      )}
 
       <Card>
         <CardHeader>

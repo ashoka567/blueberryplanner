@@ -676,9 +676,12 @@ export async function registerRoutes(
       }
 
       const user = await storage.getUserByEmail(email);
-      if (!user || !user.securityQuestion1 || !user.securityQuestion2) {
+      if (!user) {
         recordFailedAttempt(rateLimitKey);
-        return res.json({ found: false });
+        return res.json({ found: false, reason: 'no_account' });
+      }
+      if (!user.securityQuestion1 || !user.securityQuestion2) {
+        return res.json({ found: false, reason: 'no_security_questions' });
       }
 
       res.json({
@@ -736,6 +739,60 @@ export async function registerRoutes(
     } catch (error) {
       console.error('Reset password error:', error);
       res.status(500).json({ error: 'Failed to reset password' });
+    }
+  });
+
+  app.post('/api/auth/security-questions', async (req: Request, res: Response) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const { securityQuestion1, securityAnswer1, securityQuestion2, securityAnswer2 } = req.body;
+
+      if (!securityQuestion1 || !securityAnswer1 || !securityQuestion2 || !securityAnswer2) {
+        return res.status(400).json({ error: 'All security question fields are required' });
+      }
+
+      if (securityQuestion1 === securityQuestion2) {
+        return res.status(400).json({ error: 'Please choose two different security questions' });
+      }
+
+      await storage.updateUser(userId, {
+        securityQuestion1,
+        securityAnswer1: securityAnswer1.toLowerCase().trim(),
+        securityQuestion2,
+        securityAnswer2: securityAnswer2.toLowerCase().trim(),
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Update security questions error:', error);
+      res.status(500).json({ error: 'Failed to update security questions' });
+    }
+  });
+
+  app.get('/api/auth/security-questions', async (req: Request, res: Response) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      res.json({
+        hasSecurityQuestions: !!(user.securityQuestion1 && user.securityQuestion2),
+        securityQuestion1: user.securityQuestion1 || null,
+        securityQuestion2: user.securityQuestion2 || null,
+      });
+    } catch (error) {
+      console.error('Get security questions error:', error);
+      res.status(500).json({ error: 'Failed to get security questions' });
     }
   });
 

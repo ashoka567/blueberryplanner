@@ -32,8 +32,10 @@ export default function ResetPassword() {
       if (result.found && result.securityQuestion1 && result.securityQuestion2) {
         setQuestions({ q1: result.securityQuestion1, q2: result.securityQuestion2 });
         setStep('questions');
+      } else if (result.reason === 'no_security_questions') {
+        toast({ title: "Security Questions Not Set Up", description: "Your account doesn't have security questions yet. Please log in and go to Settings to set them up first.", variant: "destructive" });
       } else {
-        toast({ title: "Account Not Found", description: "No account found with that email, or security questions were not set up during registration.", variant: "destructive" });
+        toast({ title: "Account Not Found", description: "No account found with that email address.", variant: "destructive" });
       }
     } catch (error) {
       toast({ title: "Error", description: error instanceof Error ? error.message : "Something went wrong.", variant: "destructive" });

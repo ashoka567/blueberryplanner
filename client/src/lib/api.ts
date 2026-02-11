@@ -515,8 +515,27 @@ export async function getKidsByFamily(familyId: string): Promise<Kid[]> {
 
 export interface VerifyResetResponse {
   found: boolean;
+  reason?: string;
   securityQuestion1?: string;
   securityQuestion2?: string;
+}
+
+export async function getSecurityQuestions(): Promise<{ hasSecurityQuestions: boolean; securityQuestion1: string | null; securityQuestion2: string | null }> {
+  const res = await fetchWithCredentials(`${API_BASE}/auth/security-questions`);
+  return res.json();
+}
+
+export async function updateSecurityQuestions(data: { securityQuestion1: string; securityAnswer1: string; securityQuestion2: string; securityAnswer2: string }): Promise<{ success: boolean }> {
+  const res = await fetchWithCredentials(`${API_BASE}/auth/security-questions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Failed to update security questions');
+  }
+  return res.json();
 }
 
 export async function verifyResetPassword(email: string): Promise<VerifyResetResponse> {
