@@ -5,9 +5,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, UserPlus, Plus, Trash2, Eye, EyeOff, Users, Shield, Baby, Copy, Check } from "lucide-react";
+import { Loader2, UserPlus, Plus, Trash2, Eye, EyeOff, Users, Shield, Baby, Copy, Check, ShieldQuestion } from "lucide-react";
 import * as api from "@/lib/api";
+
+const SECURITY_QUESTIONS = [
+  "What was the name of your first pet?",
+  "What city were you born in?",
+  "What is your mother's maiden name?",
+  "What was the name of your elementary school?",
+  "What is your favorite movie?",
+  "What street did you grow up on?",
+  "What was your childhood nickname?",
+  "What is the name of your favorite childhood friend?",
+  "What was your first car?",
+  "What is your favorite food?",
+];
 
 interface FamilyMember {
   name: string;
@@ -37,6 +51,10 @@ export default function Register({ onRegisterSuccess }: RegisterProps) {
     guardianEmail: '',
     password: '',
     confirmPassword: '',
+    securityQuestion1: '',
+    securityAnswer1: '',
+    securityQuestion2: '',
+    securityAnswer2: '',
   });
   
   const [members, setMembers] = useState<FamilyMember[]>([]);
@@ -96,6 +114,34 @@ export default function Register({ onRegisterSuccess }: RegisterProps) {
     return true;
   };
 
+  const validateSecurityQuestions = () => {
+    if (!form.securityQuestion1 || !form.securityAnswer1) {
+      toast({
+        title: "Missing Security Question",
+        description: "Please select and answer the first security question.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    if (!form.securityQuestion2 || !form.securityAnswer2) {
+      toast({
+        title: "Missing Security Question",
+        description: "Please select and answer the second security question.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    if (form.securityQuestion1 === form.securityQuestion2) {
+      toast({
+        title: "Same Questions",
+        description: "Please choose two different security questions.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    return true;
+  };
+
   const copyPin = (pin: string, name: string) => {
     navigator.clipboard.writeText(pin);
     setCopiedPin(name);
@@ -106,6 +152,8 @@ export default function Register({ onRegisterSuccess }: RegisterProps) {
     onRegisterSuccess();
     setLocation('/');
   };
+
+  const totalSteps = 4;
 
   const handleSubmit = async () => {
     setIsLoading(true);
@@ -126,12 +174,16 @@ export default function Register({ onRegisterSuccess }: RegisterProps) {
         guardianName: form.guardianName,
         guardianEmail: form.guardianEmail,
         password: form.password,
+        securityQuestion1: form.securityQuestion1,
+        securityAnswer1: form.securityAnswer1,
+        securityQuestion2: form.securityQuestion2,
+        securityAnswer2: form.securityAnswer2,
         members: memberData,
       });
       
       if (response.kidPins && response.kidPins.length > 0) {
         setKidPins(response.kidPins);
-        setStep(3);
+        setStep(totalSteps);
       } else {
         toast({
           title: "Family Created!",
@@ -151,6 +203,8 @@ export default function Register({ onRegisterSuccess }: RegisterProps) {
     }
   };
 
+  const availableQ2 = SECURITY_QUESTIONS.filter(q => q !== form.securityQuestion1);
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-amber-100 p-4">
       <Card className="w-full max-w-xl shadow-xl border-none">
@@ -159,17 +213,19 @@ export default function Register({ onRegisterSuccess }: RegisterProps) {
             🫐
           </div>
           <CardTitle className="text-2xl font-bold text-[#D2691E]">
-            {step === 3 ? "Important: Kid's PINs" : "Create Your Family Account"}
+            {step === totalSteps ? "Important: Kid's PINs" : "Create Your Family Account"}
           </CardTitle>
           <CardDescription>
             {step === 1 ? "Set up the primary guardian account" : 
-             step === 2 ? "Add your family members (optional)" :
+             step === 2 ? "Set up security questions for password recovery" :
+             step === 3 ? "Add your family members (optional)" :
              "Save these PINs - your kids will use them to sign in"}
           </CardDescription>
           <div className="flex justify-center gap-2 pt-2">
-            <div className={`h-2 w-12 rounded-full ${step >= 1 ? 'bg-[#D2691E]' : 'bg-gray-200'}`} />
-            <div className={`h-2 w-12 rounded-full ${step >= 2 ? 'bg-[#D2691E]' : 'bg-gray-200'}`} />
-            {kidPins.length > 0 && <div className={`h-2 w-12 rounded-full ${step >= 3 ? 'bg-[#D2691E]' : 'bg-gray-200'}`} />}
+            {[1, 2, 3].map(s => (
+              <div key={s} className={`h-2 w-12 rounded-full ${step >= s ? 'bg-[#D2691E]' : 'bg-gray-200'}`} />
+            ))}
+            {kidPins.length > 0 && <div className={`h-2 w-12 rounded-full ${step >= totalSteps ? 'bg-[#D2691E]' : 'bg-gray-200'}`} />}
           </div>
         </CardHeader>
         <CardContent>
@@ -254,10 +310,83 @@ export default function Register({ onRegisterSuccess }: RegisterProps) {
                 className="w-full bg-[#D2691E] hover:bg-[#B8581A] h-11 mt-4"
                 data-testid="button-next-step"
               >
-                Continue to Add Family Members
+                Continue to Security Questions
               </Button>
             </div>
           ) : step === 2 ? (
+            <div className="space-y-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
+                <p className="flex items-center gap-2 mb-1">
+                  <ShieldQuestion className="h-4 w-4" />
+                  <strong>Security Questions</strong>
+                </p>
+                <p>These questions will help you reset your password if you forget it. Choose questions only you would know the answer to.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Security Question 1</Label>
+                <Select
+                  value={form.securityQuestion1}
+                  onValueChange={(val) => setForm({ ...form, securityQuestion1: val })}
+                >
+                  <SelectTrigger data-testid="select-security-q1">
+                    <SelectValue placeholder="Choose a question..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SECURITY_QUESTIONS.map((q) => (
+                      <SelectItem key={q} value={q}>{q}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  placeholder="Your answer"
+                  value={form.securityAnswer1}
+                  onChange={(e) => setForm({ ...form, securityAnswer1: e.target.value })}
+                  data-testid="input-security-a1"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Security Question 2</Label>
+                <Select
+                  value={form.securityQuestion2}
+                  onValueChange={(val) => setForm({ ...form, securityQuestion2: val })}
+                >
+                  <SelectTrigger data-testid="select-security-q2">
+                    <SelectValue placeholder="Choose a different question..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableQ2.map((q) => (
+                      <SelectItem key={q} value={q}>{q}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  placeholder="Your answer"
+                  value={form.securityAnswer2}
+                  onChange={(e) => setForm({ ...form, securityAnswer2: e.target.value })}
+                  data-testid="input-security-a2"
+                />
+              </div>
+              
+              <div className="flex gap-3 pt-4">
+                <Button 
+                  variant="outline"
+                  onClick={() => setStep(1)}
+                  className="flex-1"
+                >
+                  Back
+                </Button>
+                <Button 
+                  onClick={() => validateSecurityQuestions() && setStep(3)}
+                  className="flex-1 bg-[#D2691E] hover:bg-[#B8581A]"
+                  data-testid="button-security-next"
+                >
+                  Continue to Family Members
+                </Button>
+              </div>
+            </div>
+          ) : step === 3 ? (
             <div className="space-y-4">
               <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground">
                 <p className="flex items-center gap-2 mb-2">
@@ -385,7 +514,7 @@ export default function Register({ onRegisterSuccess }: RegisterProps) {
               <div className="flex gap-3 pt-4">
                 <Button 
                   variant="outline"
-                  onClick={() => setStep(1)}
+                  onClick={() => setStep(2)}
                   className="flex-1"
                 >
                   Back
@@ -405,7 +534,7 @@ export default function Register({ onRegisterSuccess }: RegisterProps) {
                 </Button>
               </div>
             </div>
-          ) : step === 3 ? (
+          ) : step === totalSteps ? (
             <div className="space-y-4">
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
                 <p className="text-amber-800 text-sm">
@@ -460,7 +589,7 @@ export default function Register({ onRegisterSuccess }: RegisterProps) {
             </div>
           ) : null}
           
-          {step !== 3 && (
+          {step !== totalSteps && (
           <div className="mt-6 text-center text-sm text-muted-foreground">
             Already have an account?{' '}
             <Link href="/login" className="text-[#D2691E] hover:underline font-medium" data-testid="link-login">

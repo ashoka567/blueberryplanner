@@ -1,12 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogIn, Eye, EyeOff } from "lucide-react";
+import { Loader2, LogIn, Eye, EyeOff, RefreshCw } from "lucide-react";
 import * as api from "@/lib/api";
+
+function generateCaptcha() {
+  const a = Math.floor(Math.random() * 20) + 1;
+  const b = Math.floor(Math.random() * 20) + 1;
+  return { a, b, answer: a + b };
+}
 
 interface LoginProps {
   onLoginSuccess: () => void;
@@ -17,10 +23,17 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [captcha, setCaptcha] = useState(generateCaptcha);
+  const [captchaInput, setCaptchaInput] = useState('');
   const [form, setForm] = useState({
     email: '',
     password: '',
   });
+
+  const refreshCaptcha = useCallback(() => {
+    setCaptcha(generateCaptcha());
+    setCaptchaInput('');
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +44,16 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         description: "Please enter both email and password.",
         variant: "destructive",
       });
+      return;
+    }
+
+    if (parseInt(captchaInput) !== captcha.answer) {
+      toast({
+        title: "Wrong Answer",
+        description: "Please solve the math problem correctly.",
+        variant: "destructive",
+      });
+      refreshCaptcha();
       return;
     }
 
@@ -49,6 +72,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         description: error instanceof Error ? error.message : "Invalid email or password.",
         variant: "destructive",
       });
+      refreshCaptcha();
     } finally {
       setIsLoading(false);
     }
@@ -108,6 +132,37 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                 </Button>
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label>Verify you're a real person</Label>
+              <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-3 border">
+                <div className="flex items-center gap-2 text-lg font-semibold text-[#D2691E] select-none whitespace-nowrap">
+                  <span data-testid="text-captcha-problem">{captcha.a} + {captcha.b} = ?</span>
+                </div>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  placeholder="Answer"
+                  value={captchaInput}
+                  onChange={(e) => setCaptchaInput(e.target.value.replace(/\D/g, ''))}
+                  disabled={isLoading}
+                  className="w-24 text-center font-mono text-lg"
+                  data-testid="input-captcha"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={refreshCaptcha}
+                  className="shrink-0"
+                  tabIndex={-1}
+                  data-testid="button-refresh-captcha"
+                >
+                  <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </div>
+            </div>
             
             <Button 
               type="submit" 
@@ -123,8 +178,14 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               Sign In
             </Button>
           </form>
+
+          <div className="mt-3 text-center">
+            <Link href="/reset-password" className="text-sm text-[#D2691E] hover:underline font-medium" data-testid="link-forgot-password">
+              Forgot your password?
+            </Link>
+          </div>
           
-          <div className="mt-6 text-center text-sm text-muted-foreground">
+          <div className="mt-4 text-center text-sm text-muted-foreground">
             Don't have an account?{' '}
             <Link href="/register" className="text-[#D2691E] hover:underline font-medium" data-testid="link-register">
               Create Family Account

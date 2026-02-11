@@ -17,6 +17,7 @@ import NotificationsPage from "@/pages/Notifications";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import KidLogin from "@/pages/KidLogin";
+import ResetPassword from "@/pages/ResetPassword";
 import NotFound from "@/pages/not-found";
 import SuperAdmin from "@/pages/SuperAdmin";
 import Support from "@/pages/Support";
@@ -64,6 +65,7 @@ function AuthenticatedRouter() {
         <Route path="/kid-login">
           <KidLogin onLoginSuccess={handleAuthSuccess} />
         </Route>
+        <Route path="/reset-password" component={ResetPassword} />
         <Route>
           <Login onLoginSuccess={handleAuthSuccess} />
         </Route>
