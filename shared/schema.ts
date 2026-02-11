@@ -17,6 +17,10 @@ export const users = pgTable("users", {
   status: varchar("status", { length: 20 }).default("ACTIVE"),
   avatar: text("avatar"),
   chorePoints: integer("chore_points").default(0),
+  securityQuestion1: varchar("security_question_1", { length: 255 }),
+  securityAnswer1: varchar("security_answer_1", { length: 255 }),
+  securityQuestion2: varchar("security_question_2", { length: 255 }),
+  securityAnswer2: varchar("security_answer_2", { length: 255 }),
   createdAt: timestamp("created_at").default(sql`NOW()`),
 });
 

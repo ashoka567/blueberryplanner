@@ -155,10 +155,15 @@ interface RegisterRequest {
   guardianName: string;
   guardianEmail: string;
   password: string;
+  securityQuestion1?: string;
+  securityAnswer1?: string;
+  securityQuestion2?: string;
+  securityAnswer2?: string;
   members?: Array<{
     name: string;
     email?: string;
     password?: string;
+    pin?: string;
     age?: number;
     isChild: boolean;
   }>;
@@ -304,7 +309,7 @@ export async function registerRoutes(
 
   app.post('/api/auth/register', async (req: Request, res: Response) => {
     try {
-      const { familyName, guardianName, guardianEmail, password, members = [] } = req.body as RegisterRequest;
+      const { familyName, guardianName, guardianEmail, password, securityQuestion1, securityAnswer1, securityQuestion2, securityAnswer2, members = [] } = req.body as RegisterRequest;
       
       if (!familyName || !guardianName || !guardianEmail || !password) {
         return res.status(400).json({ error: 'All fields are required' });
@@ -407,6 +412,15 @@ export async function registerRoutes(
         avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(guardianName)}`,
       });
       
+      if (securityQuestion1 && securityAnswer1 && securityQuestion2 && securityAnswer2) {
+        await storage.updateUser(guardian.id, {
+          securityQuestion1,
+          securityAnswer1: securityAnswer1.toLowerCase().trim(),
+          securityQuestion2,
+          securityAnswer2: securityAnswer2.toLowerCase().trim(),
+        });
+      }
+
       // Create family
       const family = await storage.createFamily({
         name: familyName,
@@ -641,6 +655,87 @@ export async function registerRoutes(
     } catch (error) {
       console.error('Kid login error:', error);
       res.status(500).json({ error: 'Login failed' });
+    }
+  });
+
+  app.post('/api/auth/reset-password/verify', async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+      }
+
+      const rateLimitKey = `reset:${email.toLowerCase()}`;
+      const rateCheck = checkRateLimit(rateLimitKey);
+      if (!rateCheck.allowed) {
+        return res.status(429).json({
+          error: 'Too many attempts. Please try again later.',
+          retryAfter: rateCheck.retryAfter,
+        });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      if (!user || !user.securityQuestion1 || !user.securityQuestion2) {
+        recordFailedAttempt(rateLimitKey);
+        return res.json({ found: false });
+      }
+
+      res.json({
+        found: true,
+        securityQuestion1: user.securityQuestion1,
+        securityQuestion2: user.securityQuestion2,
+      });
+    } catch (error) {
+      console.error('Reset password verify error:', error);
+      res.status(500).json({ error: 'Failed to verify account' });
+    }
+  });
+
+  app.post('/api/auth/reset-password', async (req: Request, res: Response) => {
+    try {
+      const { email, securityAnswer1, securityAnswer2, newPassword } = req.body;
+
+      if (!email || !securityAnswer1 || !securityAnswer2 || !newPassword) {
+        return res.status(400).json({ error: 'All fields are required' });
+      }
+
+      if (newPassword.length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters' });
+      }
+
+      const rateLimitKey = `reset-attempt:${email.toLowerCase()}`;
+      const rateCheck = checkRateLimit(rateLimitKey);
+      if (!rateCheck.allowed) {
+        return res.status(429).json({
+          error: 'Too many attempts. Please try again later.',
+          retryAfter: rateCheck.retryAfter,
+        });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      if (!user || !user.securityAnswer1 || !user.securityAnswer2) {
+        recordFailedAttempt(rateLimitKey);
+        return res.status(400).json({ error: 'Account not found or security questions not set up' });
+      }
+
+      const answer1Match = securityAnswer1.toLowerCase().trim() === user.securityAnswer1;
+      const answer2Match = securityAnswer2.toLowerCase().trim() === user.securityAnswer2;
+
+      if (!answer1Match || !answer2Match) {
+        recordFailedAttempt(rateLimitKey);
+        return res.status(400).json({ error: 'Security answers are incorrect' });
+      }
+
+      const hashedNewPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+      await storage.updateUser(user.id, { password: hashedNewPassword });
+
+      resetRateLimit(rateLimitKey);
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Reset password error:', error);
+      res.status(500).json({ error: 'Failed to reset password' });
     }
   });
 
