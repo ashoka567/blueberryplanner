@@ -538,6 +538,19 @@ export async function updateSecurityQuestions(data: { securityQuestion1: string;
   return res.json();
 }
 
+export async function setupSecurityQuestions(data: { email: string; currentPassword: string; securityQuestion1: string; securityAnswer1: string; securityQuestion2: string; securityAnswer2: string }): Promise<{ success: boolean }> {
+  const res = await fetchWithCredentials(`${API_BASE}/auth/setup-security-questions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Failed to set up security questions');
+  }
+  return res.json();
+}
+
 export async function verifyResetPassword(email: string): Promise<VerifyResetResponse> {
   const res = await fetchWithCredentials(`${API_BASE}/auth/reset-password/verify`, {
     method: 'POST',

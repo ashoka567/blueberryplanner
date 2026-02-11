@@ -742,6 +742,52 @@ export async function registerRoutes(
     }
   });
 
+  app.post('/api/auth/setup-security-questions', async (req: Request, res: Response) => {
+    try {
+      const { email, currentPassword, securityQuestion1, securityAnswer1, securityQuestion2, securityAnswer2 } = req.body;
+
+      if (!email || !currentPassword || !securityQuestion1 || !securityAnswer1 || !securityQuestion2 || !securityAnswer2) {
+        return res.status(400).json({ error: 'All fields are required' });
+      }
+
+      if (securityQuestion1 === securityQuestion2) {
+        return res.status(400).json({ error: 'Please choose two different security questions' });
+      }
+
+      const rateLimitKey = `setup-sq:${email.toLowerCase()}`;
+      const rateCheck = checkRateLimit(rateLimitKey);
+      if (!rateCheck.allowed) {
+        return res.status(429).json({ error: 'Too many attempts. Please try again later.', retryAfter: rateCheck.retryAfter });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      if (!user || !user.password) {
+        recordFailedAttempt(rateLimitKey);
+        return res.status(400).json({ error: 'Invalid email or password' });
+      }
+
+      const passwordMatch = await bcrypt.compare(currentPassword, user.password);
+      if (!passwordMatch) {
+        recordFailedAttempt(rateLimitKey);
+        return res.status(400).json({ error: 'Invalid email or password' });
+      }
+
+      resetRateLimit(rateLimitKey);
+
+      await storage.updateUser(user.id, {
+        securityQuestion1,
+        securityAnswer1: securityAnswer1.toLowerCase().trim(),
+        securityQuestion2,
+        securityAnswer2: securityAnswer2.toLowerCase().trim(),
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Setup security questions error:', error);
+      res.status(500).json({ error: 'Failed to set up security questions' });
+    }
+  });
+
   app.post('/api/auth/security-questions', async (req: Request, res: Response) => {
     try {
       const userId = req.session?.userId;
