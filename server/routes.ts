@@ -8,20 +8,19 @@ import { sendVerificationEmail } from "./email";
 const SALT_ROUNDS = 12;
 
 const loginAttempts = new Map<string, { count: number; lastAttempt: number }>();
-const MAX_LOGIN_ATTEMPTS = 5;
-const LOCKOUT_DURATION = 15 * 60 * 1000;
+const MAX_LOGIN_ATTEMPTS = 10;
+const LOCKOUT_DURATION = 5 * 60 * 1000;
 
 function checkRateLimit(key: string): { allowed: boolean; retryAfter?: number } {
   const now = Date.now();
   const attempts = loginAttempts.get(key);
   
   if (!attempts) {
-    loginAttempts.set(key, { count: 1, lastAttempt: now });
     return { allowed: true };
   }
   
   if (now - attempts.lastAttempt > LOCKOUT_DURATION) {
-    loginAttempts.set(key, { count: 1, lastAttempt: now });
+    loginAttempts.delete(key);
     return { allowed: true };
   }
   
@@ -30,9 +29,18 @@ function checkRateLimit(key: string): { allowed: boolean; retryAfter?: number } 
     return { allowed: false, retryAfter };
   }
   
-  attempts.count++;
-  attempts.lastAttempt = now;
   return { allowed: true };
+}
+
+function recordFailedAttempt(key: string): void {
+  const now = Date.now();
+  const attempts = loginAttempts.get(key);
+  if (!attempts) {
+    loginAttempts.set(key, { count: 1, lastAttempt: now });
+  } else {
+    attempts.count++;
+    attempts.lastAttempt = now;
+  }
 }
 
 function resetRateLimit(key: string): void {
@@ -482,11 +490,13 @@ export async function registerRoutes(
       
       const user = await storage.getUserByEmail(email);
       if (!user || !user.password) {
+        recordFailedAttempt(rateLimitKey);
         return res.status(401).json({ error: 'Invalid email or password' });
       }
       
       const passwordMatch = await bcrypt.compare(password, user.password);
       if (!passwordMatch) {
+        recordFailedAttempt(rateLimitKey);
         return res.status(401).json({ error: 'Invalid email or password' });
       }
       
@@ -595,6 +605,7 @@ export async function registerRoutes(
       );
       
       if (!matchingFamily) {
+        recordFailedAttempt(rateLimitKey);
         return res.status(401).json({ error: 'Family name, name, or PIN is incorrect' });
       }
       
@@ -613,6 +624,7 @@ export async function registerRoutes(
       }
       
       if (!matchedKid) {
+        recordFailedAttempt(rateLimitKey);
         return res.status(401).json({ error: 'Family name, name, or PIN is incorrect' });
       }
       
