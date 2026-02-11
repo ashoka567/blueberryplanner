@@ -13,11 +13,6 @@ ios/App/Pods/Pods.xcodeproj/xcuserdata/
 # iOS - SPM resolved packages (auto-generated)
 ios/App/App.xcworkspace/xcshareddata/swiftpm/Package.resolved
 
-# iOS - Fastlane generated files
-ios/App/fastlane/README.md
-ios/App/fastlane/report.xml
-ios/App/fastlane/screenshots/
-
 # iOS - Xcode derived data
 DerivedData/
 ios/App/DerivedData/
