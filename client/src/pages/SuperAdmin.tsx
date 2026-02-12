@@ -187,11 +187,14 @@ export default function SuperAdmin() {
         throw new Error(errData.error || "Failed to impersonate user");
       }
 
+      const data = await res.json();
+      
       toast({
         title: "Impersonation Active",
-        description: `You are now viewing as ${user.name}`,
+        description: `You are now viewing as ${data.user?.name || user.name}`,
       });
 
+      await new Promise(resolve => setTimeout(resolve, 500));
       window.location.href = "/";
     } catch (error) {
       toast({

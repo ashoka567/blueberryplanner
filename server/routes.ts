@@ -935,7 +935,13 @@ export async function registerRoutes(
       req.session.isChild = user.isChild ?? false;
       req.session.isSuperAdmin = true;
 
-      res.json({ success: true, user: { id: user.id, name: user.name } });
+      req.session.save((err) => {
+        if (err) {
+          console.error('Session save error during impersonation:', err);
+          return res.status(500).json({ error: 'Failed to save session' });
+        }
+        res.json({ success: true, user: { id: user.id, name: user.name } });
+      });
     } catch (error) {
       console.error('Impersonation error:', error);
       res.status(500).json({ error: 'Impersonation failed' });
