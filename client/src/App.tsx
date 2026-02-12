@@ -74,6 +74,10 @@ function AuthenticatedRouter() {
     );
   }
 
+  return <AuthenticatedContent authData={authData} setLocation={setLocation} />;
+}
+
+function AuthenticatedContent({ authData, setLocation }: { authData: any; setLocation: (to: string) => void }) {
   const family = useCurrentFamily();
   useNotificationScheduler(family?.id);
 
