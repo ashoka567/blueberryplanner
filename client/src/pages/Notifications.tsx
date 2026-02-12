@@ -3,22 +3,21 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Pill, CheckSquare, Clock, Loader2 } from "lucide-react";
+import { Pill, CheckSquare, Clock, Loader2, Bell, BellRing, Smartphone, Globe } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-
-interface NotificationSettings {
-  medicationsEnabled: boolean;
-  medicationsMinutes: number;
-  choresEnabled: boolean;
-  choresMinutes: number;
-  remindersEnabled: boolean;
-  remindersMinutes: number;
-  groceriesEnabled: boolean;
-  calendarEnabled: boolean;
-  calendarMinutes: number;
-  pushEnabled: boolean;
-}
+import { Capacitor } from '@capacitor/core';
+import {
+  requestPermission,
+  checkPermission,
+  sendTestNotification,
+  scheduleAllNotifications,
+  cancelAllNotifications,
+  getPendingNotificationCount,
+  type NotificationSettings,
+} from '@/lib/notifications';
+import { useCurrentFamily, useFamilyMembers } from '@/hooks/useData';
+import * as api from '@/lib/api';
 
 const TIMING_OPTIONS = [
   { value: "5", label: "5 min" },
@@ -31,9 +30,13 @@ const TIMING_OPTIONS = [
 
 export default function NotificationsPage() {
   const { toast } = useToast();
+  const family = useCurrentFamily();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
+  const [permission, setPermission] = useState<'granted' | 'denied' | 'default'>('default');
+  const [pendingCount, setPendingCount] = useState(0);
+  const [isScheduling, setIsScheduling] = useState(false);
+  const isNative = Capacitor.isNativePlatform();
   const [settings, setSettings] = useState<NotificationSettings>({
     medicationsEnabled: true,
     medicationsMinutes: 15,
@@ -49,13 +52,23 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     loadSettings();
-    checkNotificationPermission();
+    loadPermission();
   }, []);
 
-  const checkNotificationPermission = () => {
-    if ('Notification' in window) {
-      setPushPermission(Notification.permission);
+  useEffect(() => {
+    if (!isLoading) {
+      loadPendingCount();
     }
+  }, [isLoading]);
+
+  const loadPermission = async () => {
+    const perm = await checkPermission();
+    setPermission(perm);
+  };
+
+  const loadPendingCount = async () => {
+    const count = await getPendingNotificationCount();
+    setPendingCount(count);
   };
 
   const loadSettings = async () => {
@@ -83,11 +96,40 @@ export default function NotificationsPage() {
       });
       if (response.ok) {
         toast({ title: "Settings saved" });
+        await rescheduleNotifications(newSettings);
       }
     } catch (error) {
       toast({ title: "Error", description: "Failed to save settings.", variant: "destructive" });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const rescheduleNotifications = async (currentSettings?: NotificationSettings) => {
+    if (!family?.id) return;
+    setIsScheduling(true);
+    try {
+      const s = currentSettings || settings;
+      const [medications, chores, reminders] = await Promise.all([
+        api.getMedicines(family.id),
+        api.getChores(family.id),
+        api.getReminders(family.id),
+      ]);
+
+      const result = await scheduleAllNotifications(medications, chores, reminders, s);
+      const total = result.medications + result.chores + result.reminders;
+      setPendingCount(total);
+
+      if (isNative) {
+        toast({
+          title: "Notifications updated",
+          description: `${total} notification${total !== 1 ? 's' : ''} scheduled`,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to reschedule notifications:', error);
+    } finally {
+      setIsScheduling(false);
     }
   };
 
@@ -103,39 +145,37 @@ export default function NotificationsPage() {
     saveSettings(newSettings);
   };
 
-  const requestPushPermission = async () => {
-    if (!('Notification' in window)) {
-      toast({ title: "Not supported", description: "Push notifications are not supported in this browser.", variant: "destructive" });
-      return;
-    }
-
-    try {
-      const permission = await Notification.requestPermission();
-      setPushPermission(permission);
-      
-      if (permission === 'granted') {
-        const newSettings = { ...settings, pushEnabled: true };
-        setSettings(newSettings);
-        saveSettings(newSettings);
-        toast({ title: "Notifications enabled!" });
-        new Notification('Blueberry Planner', {
-          body: 'Push notifications are now enabled!',
-          icon: '/favicon.ico',
-        });
-      } else if (permission === 'denied') {
-        toast({ title: "Permission denied", variant: "destructive" });
-      }
-    } catch (error) {
-      console.error('Error requesting permission:', error);
-      toast({ title: "Error", variant: "destructive" });
+  const handleEnableNotifications = async () => {
+    const granted = await requestPermission();
+    if (granted) {
+      setPermission('granted');
+      const newSettings = { ...settings, pushEnabled: true };
+      setSettings(newSettings);
+      await saveSettings(newSettings);
+      await sendTestNotification();
+      toast({ title: "Notifications enabled!", description: "You'll receive a test notification shortly." });
+    } else {
+      setPermission('denied');
+      toast({ title: "Permission denied", description: "Please enable notifications in your device settings.", variant: "destructive" });
     }
   };
 
-  const disablePushNotifications = () => {
+  const handleDisableNotifications = async () => {
+    await cancelAllNotifications();
     const newSettings = { ...settings, pushEnabled: false };
     setSettings(newSettings);
-    saveSettings(newSettings);
+    await saveSettings(newSettings);
+    setPendingCount(0);
     toast({ title: "Notifications disabled" });
+  };
+
+  const handleTestNotification = async () => {
+    const sent = await sendTestNotification();
+    if (sent) {
+      toast({ title: "Test sent", description: "You should see a notification in a few seconds." });
+    } else {
+      toast({ title: "Could not send", description: "Make sure notifications are enabled.", variant: "destructive" });
+    }
   };
 
   if (isLoading) {
@@ -149,9 +189,88 @@ export default function NotificationsPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-[#D2691E]">Notifications</h1>
+        <h1 className="text-2xl font-bold text-[#D2691E]" data-testid="text-notifications-title">Notifications</h1>
         <p className="text-sm text-muted-foreground">Manage your notification preferences</p>
       </div>
+
+      <Card className="border-none shadow-md">
+        <CardHeader className="py-3 px-4">
+          <CardTitle className="text-base text-[#D2691E] flex items-center gap-2">
+            {isNative ? <Smartphone className="h-4 w-4" /> : <Globe className="h-4 w-4" />}
+            {isNative ? 'Device Notifications' : 'Push Notifications'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="py-2 px-4">
+          {permission === 'granted' && settings.pushEnabled ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded-lg" data-testid="status-notifications-enabled">
+                <BellRing className="h-5 w-5" />
+                <div>
+                  <p className="font-medium text-sm">Notifications are active</p>
+                  {isNative && (
+                    <p className="text-xs text-green-500">{pendingCount} upcoming notification{pendingCount !== 1 ? 's' : ''} scheduled</p>
+                  )}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleTestNotification}
+                  data-testid="button-test-notification"
+                >
+                  <Bell className="h-4 w-4 mr-1" />
+                  Send Test
+                </Button>
+                {isNative && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => rescheduleNotifications()}
+                    disabled={isScheduling}
+                    data-testid="button-refresh-schedule"
+                  >
+                    {isScheduling ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <BellRing className="h-4 w-4 mr-1" />}
+                    Refresh Schedule
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDisableNotifications}
+                  className="text-red-500 hover:text-red-600"
+                  data-testid="button-disable-notifications"
+                >
+                  Disable
+                </Button>
+              </div>
+            </div>
+          ) : permission === 'denied' ? (
+            <div className="text-amber-600 bg-amber-50 p-3 rounded-lg" data-testid="status-notifications-denied">
+              <p className="font-medium text-sm">Notifications are blocked</p>
+              <p className="text-xs mt-1">
+                {isNative
+                  ? 'Go to your device Settings > Blueberry Planner to enable notifications.'
+                  : 'Please allow notifications in your browser settings to receive reminders.'}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="text-muted-foreground bg-gray-50 p-3 rounded-lg" data-testid="status-notifications-default">
+                <p className="text-sm">Enable notifications to receive timely reminders for medications, chores, and more.</p>
+              </div>
+              <Button
+                onClick={handleEnableNotifications}
+                className="bg-[#D2691E] hover:bg-[#B8571A] text-white"
+                data-testid="button-enable-notifications"
+              >
+                <Bell className="h-4 w-4 mr-2" />
+                Enable Notifications
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="border-none shadow-md">
         <CardHeader className="py-3 px-4">
@@ -249,8 +368,36 @@ export default function NotificationsPage() {
             </div>
           </div>
 
-          </CardContent>
+        </CardContent>
       </Card>
+
+      {isNative && permission === 'granted' && settings.pushEnabled && (
+        <Card className="border-none shadow-md">
+          <CardHeader className="py-3 px-4">
+            <CardTitle className="text-base text-[#D2691E]">How It Works</CardTitle>
+          </CardHeader>
+          <CardContent className="py-2 px-4">
+            <ul className="text-sm text-muted-foreground space-y-2">
+              <li className="flex items-start gap-2">
+                <Pill className="h-4 w-4 mt-0.5 text-pink-500 shrink-0" />
+                <span><strong>Medications</strong> — Get reminded before each scheduled dose time</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckSquare className="h-4 w-4 mt-0.5 text-amber-500 shrink-0" />
+                <span><strong>Chores</strong> — Get notified before a chore is due</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Clock className="h-4 w-4 mt-0.5 text-blue-500 shrink-0" />
+                <span><strong>Reminders</strong> — Receive alerts before your scheduled reminders</span>
+              </li>
+            </ul>
+            <p className="text-xs text-muted-foreground mt-3 border-t pt-2">
+              Notifications are refreshed automatically when you open the app or change your data. 
+              Tap "Refresh Schedule" to manually update.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {isSaving && (
         <div className="fixed bottom-4 right-4 bg-[#D2691E] text-white px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-2 text-sm">

@@ -14,16 +14,16 @@ export interface NotificationSettings {
   pushEnabled: boolean;
 }
 
-interface MedicationScheduleData {
+export interface MedicationScheduleData {
   id: string;
   name: string;
   dosage?: string | null;
   assignedTo?: string | null;
-  schedule?: { type: string; times: string[] } | null;
+  schedule?: Record<string, unknown> | null;
   active?: boolean | null;
 }
 
-interface ChoreScheduleData {
+export interface ChoreScheduleData {
   id: string;
   title: string;
   dueDate?: string | null;
@@ -32,13 +32,13 @@ interface ChoreScheduleData {
   assignedTo?: string | null;
 }
 
-interface ReminderScheduleData {
+export interface ReminderScheduleData {
   id: string;
   title: string;
   description?: string | null;
   startTime?: string | Date | null;
   isActive?: boolean | null;
-  schedule?: { type: string } | null;
+  schedule?: Record<string, unknown> | null;
 }
 
 const ID_OFFSET_MEDICATION = 100000;
@@ -174,10 +174,11 @@ export async function scheduleMedicationNotifications(
   for (const med of medications) {
     if (!med.active || !med.schedule) continue;
     const schedule = typeof med.schedule === 'string' ? JSON.parse(med.schedule) : med.schedule;
-    if (!schedule.times || !Array.isArray(schedule.times)) continue;
+    const times = (schedule as any)?.times;
+    if (!times || !Array.isArray(times)) continue;
 
-    for (let timeIdx = 0; timeIdx < schedule.times.length; timeIdx++) {
-      const time = schedule.times[timeIdx];
+    for (let timeIdx = 0; timeIdx < times.length; timeIdx++) {
+      const time = times[timeIdx];
       const baseId = ID_OFFSET_MEDICATION + hashStringToNumber(med.id) + timeIdx;
 
       for (const dateStr of [today, tomorrow]) {
