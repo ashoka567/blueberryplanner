@@ -937,6 +937,41 @@ export async function registerRoutes(
     }
   });
 
+  app.post('/api/super-admin/reset-password', async (req: Request, res: Response) => {
+    try {
+      const { adminEmail, passcode, userId, newPassword } = req.body;
+
+      if (adminEmail?.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase()) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      if (!SUPER_ADMIN_PASSCODE || passcode !== SUPER_ADMIN_PASSCODE) {
+        return res.status(403).json({ error: 'Invalid passcode' });
+      }
+
+      if (!userId || !newPassword) {
+        return res.status(400).json({ error: 'User ID and new password are required' });
+      }
+
+      if (newPassword.length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters' });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+      await storage.updateUser(userId, { password: hashedPassword });
+
+      res.json({ success: true, message: `Password reset for ${user.name}` });
+    } catch (error) {
+      console.error('Super admin reset password error:', error);
+      res.status(500).json({ error: 'Failed to reset password' });
+    }
+  });
+
   app.get('/api/families', async (req: Request, res: Response) => {
     if (req.session.isSuperAdmin) {
       const families = await storage.getFamilies();

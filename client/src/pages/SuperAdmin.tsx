@@ -4,7 +4,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, User, Eye, LogOut, Search } from "lucide-react";
+import { Shield, User, Eye, LogOut, Search, KeyRound, Check, Loader2, EyeOff } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface Family {
   id: string;
@@ -29,6 +37,12 @@ export default function SuperAdmin() {
   const [families, setFamilies] = useState<Family[]>([]);
   const [users, setUsers] = useState<UserInfo[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+
+  const [resetUserId, setResetUserId] = useState<string | null>(null);
+  const [resetUserName, setResetUserName] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   const handleLogin = async () => {
     setIsLoading(true);
@@ -98,6 +112,44 @@ export default function SuperAdmin() {
     }
   };
 
+  const handleResetPassword = async () => {
+    if (!resetUserId || !newPassword) return;
+
+    if (newPassword.length < 8) {
+      toast({ title: "Weak Password", description: "Password must be at least 8 characters.", variant: "destructive" });
+      return;
+    }
+
+    setIsResetting(true);
+    try {
+      const res = await fetch("/api/super-admin/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adminEmail: email, passcode, userId: resetUserId, newPassword }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to reset password");
+      }
+
+      toast({
+        title: "Password Reset",
+        description: `Password for ${resetUserName} has been reset successfully.`,
+      });
+      setResetUserId(null);
+      setNewPassword("");
+    } catch (error) {
+      toast({
+        title: "Reset Failed",
+        description: error instanceof Error ? error.message : "Could not reset password",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   const handleLogout = () => {
     setIsAuthenticated(false);
     setEmail("");
@@ -111,6 +163,8 @@ export default function SuperAdmin() {
     (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (user.familyName && user.familyName.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  const adultUsers = filteredUsers.filter(u => !u.isChild);
 
   if (!isAuthenticated) {
     return (
@@ -183,6 +237,53 @@ export default function SuperAdmin() {
 
         <Card className="mb-6">
           <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-red-600" />
+              Reset User Password
+            </CardTitle>
+            <CardDescription>
+              Reset a guardian's password if they're locked out and can't use security questions
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {adultUsers.map((user) => (
+                <div
+                  key={user.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-green-100">
+                      <User className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">{user.name}</p>
+                      <p className="text-sm text-gray-500">
+                        {user.email || "No email"} - {user.familyName}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-red-600 border-red-200 hover:bg-red-50"
+                    onClick={() => { setResetUserId(user.id); setResetUserName(user.name); setNewPassword(""); }}
+                    data-testid={`button-reset-pw-${user.id}`}
+                  >
+                    <KeyRound className="h-4 w-4 mr-1" />
+                    Reset Password
+                  </Button>
+                </div>
+              ))}
+              {adultUsers.length === 0 && (
+                <p className="text-center text-gray-500 py-4">No adult users found</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-6">
+          <CardHeader>
             <CardTitle>User Impersonation</CardTitle>
             <CardDescription>
               Select a user to view the app as them for testing purposes
@@ -215,7 +316,7 @@ export default function SuperAdmin() {
                     <div>
                       <p className="font-medium text-gray-900">{user.name}</p>
                       <p className="text-sm text-gray-500">
-                        {user.email || "No email"} • {user.familyName} • {user.isChild ? "Child" : "Guardian"}
+                        {user.email || "No email"} - {user.familyName} - {user.isChild ? "Child" : "Guardian"}
                       </p>
                     </div>
                   </div>
@@ -256,6 +357,58 @@ export default function SuperAdmin() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={!!resetUserId} onOpenChange={(open) => { if (!open) { setResetUserId(null); setNewPassword(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset Password for {resetUserName}</DialogTitle>
+            <DialogDescription>
+              Enter a new password for this user. They will use this password to log in.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="admin-new-password">New Password</Label>
+              <div className="relative">
+                <Input
+                  id="admin-new-password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Minimum 8 characters"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="pr-10"
+                  data-testid="input-admin-new-password"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">Must be at least 8 characters</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setResetUserId(null); setNewPassword(""); }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleResetPassword}
+              disabled={isResetting || newPassword.length < 8}
+              className="bg-red-600 hover:bg-red-700"
+              data-testid="button-confirm-reset"
+            >
+              {isResetting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
+              Reset Password
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
