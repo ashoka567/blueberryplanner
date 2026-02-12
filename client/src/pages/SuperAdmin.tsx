@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, User, Eye, LogOut, Search, KeyRound, Check, Loader2, EyeOff } from "lucide-react";
+import { Shield, User, Eye, LogOut, Search, KeyRound, Check, Loader2, EyeOff, ChevronDown } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -28,15 +28,105 @@ interface UserInfo {
   familyName?: string;
 }
 
+function SearchableUserSelect({ 
+  users, 
+  placeholder, 
+  onSelect,
+  buttonLabel,
+  buttonIcon: ButtonIcon,
+  buttonClass,
+}: {
+  users: UserInfo[];
+  placeholder: string;
+  onSelect: (user: UserInfo) => void;
+  buttonLabel: string;
+  buttonIcon: React.ElementType;
+  buttonClass?: string;
+}) {
+  const [search, setSearch] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return users;
+    const term = search.toLowerCase();
+    return users.filter(u =>
+      u.name.toLowerCase().includes(term) ||
+      (u.email && u.email.toLowerCase().includes(term)) ||
+      (u.familyName && u.familyName.toLowerCase().includes(term))
+    );
+  }, [users, search]);
+
+  return (
+    <div className="space-y-3">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Input
+          placeholder={placeholder}
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setIsOpen(true); }}
+          onFocus={() => setIsOpen(true)}
+          className="pl-10"
+          data-testid="input-search-users"
+        />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute right-0 top-0 h-full px-3"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        </Button>
+      </div>
+
+      {isOpen && (
+        <div className="max-h-[300px] overflow-y-auto border rounded-lg bg-white shadow-lg">
+          {filtered.length === 0 ? (
+            <p className="text-center text-gray-500 py-4 text-sm">No users found</p>
+          ) : (
+            filtered.map((user) => (
+              <div
+                key={user.id}
+                className="flex items-center justify-between p-3 hover:bg-gray-50 border-b last:border-b-0 transition-colors"
+              >
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center ${
+                    user.isChild ? "bg-blue-100" : "bg-green-100"
+                  }`}>
+                    <User className={`h-4 w-4 ${user.isChild ? "text-blue-600" : "text-green-600"}`} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-medium text-gray-900 text-sm truncate">{user.name}</p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {user.email || "No email"} · {user.familyName} · {user.isChild ? "Child" : "Guardian"}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className={buttonClass || ""}
+                  onClick={() => { onSelect(user); setIsOpen(false); setSearch(""); }}
+                  data-testid={`button-action-${user.id}`}
+                >
+                  <ButtonIcon className="h-4 w-4 mr-1" />
+                  {buttonLabel}
+                </Button>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SuperAdmin() {
   const { toast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [email, setEmail] = useState("");
   const [passcode, setPasscode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [families, setFamilies] = useState<Family[]>([]);
   const [users, setUsers] = useState<UserInfo[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
 
   const [resetUserId, setResetUserId] = useState<string | null>(null);
   const [resetUserName, setResetUserName] = useState("");
@@ -44,13 +134,17 @@ export default function SuperAdmin() {
   const [showPassword, setShowPassword] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
+  const adminEmail = "ashoka6@gmail.com";
+
+  const adultUsers = useMemo(() => users.filter(u => !u.isChild), [users]);
+
   const handleLogin = async () => {
     setIsLoading(true);
     try {
       const res = await fetch("/api/super-admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, passcode }),
+        body: JSON.stringify({ email: adminEmail, passcode }),
       });
 
       if (!res.ok) {
@@ -85,28 +179,29 @@ export default function SuperAdmin() {
     }
   };
 
-  const handleImpersonate = async (userId: string, userName: string) => {
+  const handleImpersonate = async (user: UserInfo) => {
     try {
       const res = await fetch("/api/super-admin/impersonate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, adminEmail: email, passcode }),
+        body: JSON.stringify({ userId: user.id, adminEmail, passcode }),
       });
 
       if (!res.ok) {
-        throw new Error("Failed to impersonate user");
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to impersonate user");
       }
 
       toast({
         title: "Impersonation Active",
-        description: `You are now viewing as ${userName}`,
+        description: `You are now viewing as ${user.name}`,
       });
 
-      window.location.href = "/dashboard";
+      window.location.href = "/";
     } catch (error) {
       toast({
         title: "Failed",
-        description: "Could not impersonate user",
+        description: error instanceof Error ? error.message : "Could not impersonate user",
         variant: "destructive",
       });
     }
@@ -125,7 +220,7 @@ export default function SuperAdmin() {
       const res = await fetch("/api/super-admin/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ adminEmail: email, passcode, userId: resetUserId, newPassword }),
+        body: JSON.stringify({ adminEmail, passcode, userId: resetUserId, newPassword }),
       });
 
       if (!res.ok) {
@@ -152,19 +247,10 @@ export default function SuperAdmin() {
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    setEmail("");
     setPasscode("");
     setFamilies([]);
     setUsers([]);
   };
-
-  const filteredUsers = users.filter(user => 
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (user.familyName && user.familyName.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
-  const adultUsers = filteredUsers.filter(u => !u.isChild);
 
   if (!isAuthenticated) {
     return (
@@ -176,21 +262,10 @@ export default function SuperAdmin() {
             </div>
             <CardTitle className="text-2xl">Super Admin Access</CardTitle>
             <CardDescription>
-              Restricted area - Authorized personnel only
+              Enter your passcode to continue
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="admin-email">Admin Email</Label>
-              <Input
-                id="admin-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter admin email"
-                data-testid="input-admin-email"
-              />
-            </div>
             <div>
               <Label htmlFor="admin-passcode">Passcode</Label>
               <Input
@@ -199,13 +274,14 @@ export default function SuperAdmin() {
                 value={passcode}
                 onChange={(e) => setPasscode(e.target.value)}
                 placeholder="Enter super admin passcode"
+                onKeyDown={(e) => { if (e.key === 'Enter' && passcode) handleLogin(); }}
                 data-testid="input-admin-passcode"
               />
             </div>
             <Button
               className="w-full bg-red-600 hover:bg-red-700"
               onClick={handleLogin}
-              disabled={isLoading || !email || !passcode}
+              disabled={isLoading || !passcode}
               data-testid="button-admin-login"
             >
               {isLoading ? "Verifying..." : "Access Super Admin"}
@@ -218,7 +294,7 @@ export default function SuperAdmin() {
 
   return (
     <div className="min-h-screen bg-gray-100 p-4">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
@@ -226,7 +302,7 @@ export default function SuperAdmin() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Super Admin Panel</h1>
-              <p className="text-sm text-gray-500">Logged in as {email}</p>
+              <p className="text-sm text-gray-500">Logged in as {adminEmail}</p>
             </div>
           </div>
           <Button variant="outline" onClick={handleLogout} data-testid="button-admin-logout">
@@ -242,100 +318,39 @@ export default function SuperAdmin() {
               Reset User Password
             </CardTitle>
             <CardDescription>
-              Reset a guardian's password if they're locked out and can't use security questions
+              Search for a guardian and reset their password
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              {adultUsers.map((user) => (
-                <div
-                  key={user.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-green-100">
-                      <User className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">{user.name}</p>
-                      <p className="text-sm text-gray-500">
-                        {user.email || "No email"} - {user.familyName}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-red-600 border-red-200 hover:bg-red-50"
-                    onClick={() => { setResetUserId(user.id); setResetUserName(user.name); setNewPassword(""); }}
-                    data-testid={`button-reset-pw-${user.id}`}
-                  >
-                    <KeyRound className="h-4 w-4 mr-1" />
-                    Reset Password
-                  </Button>
-                </div>
-              ))}
-              {adultUsers.length === 0 && (
-                <p className="text-center text-gray-500 py-4">No adult users found</p>
-              )}
-            </div>
+            <SearchableUserSelect
+              users={adultUsers}
+              placeholder="Search guardian by name or email..."
+              onSelect={(user) => { setResetUserId(user.id); setResetUserName(user.name); setNewPassword(""); }}
+              buttonLabel="Reset"
+              buttonIcon={KeyRound}
+              buttonClass="text-red-600 border-red-200 hover:bg-red-50"
+            />
           </CardContent>
         </Card>
 
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>User Impersonation</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5 text-blue-600" />
+              View As User
+            </CardTitle>
             <CardDescription>
-              Select a user to view the app as them for testing purposes
+              Search for a user to view the app as them
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="relative mb-4">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search by name, email, or family..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-                data-testid="input-search-users"
-              />
-            </div>
-
-            <div className="space-y-2 max-h-[500px] overflow-y-auto">
-              {filteredUsers.map((user) => (
-                <div
-                  key={user.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      user.isChild ? "bg-blue-100" : "bg-green-100"
-                    }`}>
-                      <User className={`h-5 w-5 ${user.isChild ? "text-blue-600" : "text-green-600"}`} />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">{user.name}</p>
-                      <p className="text-sm text-gray-500">
-                        {user.email || "No email"} - {user.familyName} - {user.isChild ? "Child" : "Guardian"}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleImpersonate(user.id, user.name)}
-                    data-testid={`button-impersonate-${user.id}`}
-                  >
-                    <Eye className="h-4 w-4 mr-1" />
-                    View As
-                  </Button>
-                </div>
-              ))}
-
-              {filteredUsers.length === 0 && (
-                <p className="text-center text-gray-500 py-8">No users found</p>
-              )}
-            </div>
+            <SearchableUserSelect
+              users={users}
+              placeholder="Search user by name, email, or family..."
+              onSelect={handleImpersonate}
+              buttonLabel="View As"
+              buttonIcon={Eye}
+            />
           </CardContent>
         </Card>
 
