@@ -1,7 +1,7 @@
 import { 
   users, families, roles, permissions, rolePermissions, familyMembers, 
   chores, groceryItems, groceryEssentials, groceryStores, groceryBuyAgain,
-  medicines, medicineLogs, reminders, emailVerifications, notificationSettings,
+  medicines, medicineLogs, reminders, reminderTargets, emailVerifications, notificationSettings,
   type User, type InsertUser, type Family, type InsertFamily,
   type Role, type Permission, type FamilyMember, type InsertFamilyMember,
   type Chore, type InsertChore, type GroceryItem, type InsertGroceryItem,
@@ -12,7 +12,7 @@ import {
   type Reminder, type InsertReminder, type NotificationSettings, type InsertNotificationSettings
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -68,6 +68,9 @@ export interface IStorage {
   createReminder(reminder: InsertReminder): Promise<Reminder>;
   updateReminder(id: string, updates: Partial<Reminder>): Promise<Reminder | undefined>;
   deleteReminder(id: string): Promise<void>;
+  getReminderTargets(reminderId: string): Promise<string[]>;
+  setReminderTargets(reminderId: string, userIds: string[]): Promise<void>;
+  getRemindersByUser(familyId: string, userId: string): Promise<Reminder[]>;
 
   createEmailVerification(userId: string, token: string, expiresAt: Date): Promise<void>;
   getEmailVerification(token: string): Promise<{ userId: string; verified: boolean; expiresAt: Date } | undefined>;
@@ -274,6 +277,27 @@ export class DatabaseStorage implements IStorage {
 
   async deleteReminder(id: string): Promise<void> {
     await db.delete(reminders).where(eq(reminders.id, id));
+  }
+
+  async getReminderTargets(reminderId: string): Promise<string[]> {
+    const targets = await db.select().from(reminderTargets).where(eq(reminderTargets.reminderId, reminderId));
+    return targets.map(t => t.userId);
+  }
+
+  async setReminderTargets(reminderId: string, userIds: string[]): Promise<void> {
+    await db.delete(reminderTargets).where(eq(reminderTargets.reminderId, reminderId));
+    if (userIds.length > 0) {
+      await db.insert(reminderTargets).values(
+        userIds.map(userId => ({ reminderId, userId }))
+      );
+    }
+  }
+
+  async getRemindersByUser(familyId: string, userId: string): Promise<Reminder[]> {
+    const allReminders = await this.getReminders(familyId);
+    const userTargets = await db.select().from(reminderTargets).where(eq(reminderTargets.userId, userId));
+    const targetReminderIds = new Set(userTargets.map(t => t.reminderId));
+    return allReminders.filter(r => targetReminderIds.has(r.id));
   }
 
   async seedDefaultData(): Promise<void> {
