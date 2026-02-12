@@ -246,7 +246,7 @@ export default function Settings() {
                 <SelectTrigger data-testid="select-settings-q1">
                   <SelectValue placeholder="Choose a question..." />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent sideOffset={8} className="bg-white shadow-lg border rounded-md">
                   {SECURITY_QUESTIONS.map((q) => (
                     <SelectItem key={q} value={q}>{q}</SelectItem>
                   ))}
@@ -266,7 +266,7 @@ export default function Settings() {
                 <SelectTrigger data-testid="select-settings-q2">
                   <SelectValue placeholder="Choose a different question..." />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent sideOffset={8} className="bg-white shadow-lg border rounded-md">
                   {SECURITY_QUESTIONS.filter(q => q !== securityQ1).map((q) => (
                     <SelectItem key={q} value={q}>{q}</SelectItem>
                   ))}

@@ -227,7 +227,7 @@ export default function ResetPassword() {
                   <SelectTrigger data-testid="select-setup-q1">
                     <SelectValue placeholder="Choose a question..." />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent sideOffset={8} className="bg-white shadow-lg border rounded-md">
                     {SECURITY_QUESTIONS.map((q) => (
                       <SelectItem key={q} value={q}>{q}</SelectItem>
                     ))}
@@ -248,7 +248,7 @@ export default function ResetPassword() {
                   <SelectTrigger data-testid="select-setup-q2">
                     <SelectValue placeholder="Choose a different question..." />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent sideOffset={8} className="bg-white shadow-lg border rounded-md">
                     {availableQ2.map((q) => (
                       <SelectItem key={q} value={q}>{q}</SelectItem>
                     ))}
