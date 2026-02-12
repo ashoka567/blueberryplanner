@@ -55,7 +55,6 @@ function AuthenticatedRouter() {
   if (!authData?.authenticated) {
     return (
       <Switch>
-        <Route path="/dontguess" component={SuperAdmin} />
         <Route path="/register">
           <Register onRegisterSuccess={handleAuthSuccess} />
         </Route>
@@ -86,7 +85,11 @@ function AuthenticatedRouter() {
         <Route path="/settings" component={Settings} />
         <Route path="/support" component={Support} />
         <Route path="/privacy-policy" component={PrivacyPolicy} />
-        <Route path="/dontguess" component={SuperAdmin} />
+        <Route path="/dontguess">
+          {authData?.user?.email?.toLowerCase() === 'ashoka6@gmail.com' 
+            ? <SuperAdmin /> 
+            : <NotFound />}
+        </Route>
         <Route path="/login">
           {() => {
             setLocation('/');

@@ -925,9 +925,14 @@ export async function registerRoutes(
         return res.status(404).json({ error: 'User not found' });
       }
 
+      const membership = await storage.getUserFamily(userId);
+      if (!membership) {
+        return res.status(404).json({ error: 'User has no family membership' });
+      }
+
       req.session.userId = user.id;
-      req.session.familyId = user.familyId;
-      req.session.isChild = user.isChild;
+      req.session.familyId = membership.familyId;
+      req.session.isChild = user.isChild ?? false;
       req.session.isSuperAdmin = true;
 
       res.json({ success: true, user: { id: user.id, name: user.name } });
