@@ -674,6 +674,7 @@ export async function registerRoutes(
       
       req.session.userId = matchedKid.id;
       req.session.familyId = matchingFamily.id;
+      req.session.isChild = true;
       
       res.json({
         success: true,
@@ -1371,10 +1372,9 @@ export async function registerRoutes(
 
   app.get('/api/families/:familyId/reminders', async (req: Request, res: Response) => {
     const familyId = Array.isArray(req.params.familyId) ? req.params.familyId[0] : req.params.familyId;
-    const user = (req.session as any)?.user;
     let remindersList;
-    if (user?.isChild) {
-      remindersList = await storage.getRemindersByUser(familyId, user.id);
+    if (req.session.isChild && req.session.userId) {
+      remindersList = await storage.getRemindersByUser(familyId, req.session.userId);
     } else {
       remindersList = await storage.getReminders(familyId);
     }

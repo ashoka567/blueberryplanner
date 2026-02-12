@@ -20,7 +20,7 @@ export default function Reminders() {
   const createReminder = useCreateReminder(family?.id);
   const deleteReminder = useDeleteReminder();
 
-  const isChild = authUser?.isChild;
+  const isChild = authUser?.user?.isChild;
 
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
