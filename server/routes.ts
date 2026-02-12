@@ -1006,8 +1006,24 @@ export async function registerRoutes(
   });
 
   app.get('/api/users', async (_req: Request, res: Response) => {
-    const users = await storage.getUsers();
-    res.json(users);
+    const allUsers = await storage.getUsers();
+    const allFamilies = await storage.getFamilies();
+
+    const usersWithFamily = await Promise.all(
+      allUsers.map(async (user) => {
+        const membership = await storage.getUserFamily(user.id);
+        const family = membership ? allFamilies.find(f => f.id === membership.familyId) : null;
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          isChild: user.isChild,
+          familyId: membership?.familyId || null,
+          familyName: family?.name || "No Family",
+        };
+      })
+    );
+    res.json(usersWithFamily);
   });
 
   app.get('/api/notification-settings', async (req: Request, res: Response) => {

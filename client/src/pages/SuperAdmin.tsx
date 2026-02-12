@@ -161,12 +161,7 @@ export default function SuperAdmin() {
 
       const usersRes = await fetch("/api/users");
       const usersData = await usersRes.json();
-      
-      const usersWithFamily = usersData.map((user: UserInfo) => ({
-        ...user,
-        familyName: familiesData.find((f: Family) => f.id === user.familyId)?.name || "Unknown"
-      }));
-      setUsers(usersWithFamily);
+      setUsers(usersData);
 
     } catch (error) {
       toast({
