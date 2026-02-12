@@ -1320,8 +1320,14 @@ export async function registerRoutes(
 
   app.get('/api/families/:familyId/medicines', async (req: Request, res: Response) => {
     const familyId = Array.isArray(req.params.familyId) ? req.params.familyId[0] : req.params.familyId;
-    const medicines = await storage.getMedicines(familyId);
-    res.json(medicines);
+    const allMedicines = await storage.getMedicines(familyId);
+
+    if (req.session.isChild && req.session.userId) {
+      const filtered = allMedicines.filter(m => m.assignedTo === req.session.userId);
+      return res.json(filtered);
+    }
+
+    res.json(allMedicines);
   });
 
   app.post('/api/families/:familyId/medicines', async (req: Request, res: Response) => {
