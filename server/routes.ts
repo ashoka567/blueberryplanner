@@ -1371,28 +1371,49 @@ export async function registerRoutes(
 
   app.get('/api/families/:familyId/reminders', async (req: Request, res: Response) => {
     const familyId = Array.isArray(req.params.familyId) ? req.params.familyId[0] : req.params.familyId;
-    const reminders = await storage.getReminders(familyId);
-    res.json(reminders);
+    const user = (req.session as any)?.user;
+    let remindersList;
+    if (user?.isChild) {
+      remindersList = await storage.getRemindersByUser(familyId, user.id);
+    } else {
+      remindersList = await storage.getReminders(familyId);
+    }
+    const remindersWithTargets = await Promise.all(
+      remindersList.map(async (r) => {
+        const targetUserIds = await storage.getReminderTargets(r.id);
+        return { ...r, targetUserIds };
+      })
+    );
+    res.json(remindersWithTargets);
   });
 
   app.post('/api/families/:familyId/reminders', async (req: Request, res: Response) => {
-    const { startTime, endTime, ...rest } = req.body;
+    const { startTime, endTime, targetUserIds, ...rest } = req.body;
     const reminder = await storage.createReminder({
       ...rest,
       familyId: req.params.familyId,
       startTime: startTime ? new Date(startTime) : undefined,
       endTime: endTime ? new Date(endTime) : undefined,
     });
-    res.json(reminder);
+    if (targetUserIds && Array.isArray(targetUserIds) && targetUserIds.length > 0) {
+      await storage.setReminderTargets(reminder.id, targetUserIds);
+    }
+    const targets = await storage.getReminderTargets(reminder.id);
+    res.json({ ...reminder, targetUserIds: targets });
   });
 
   app.patch('/api/reminders/:id', async (req: Request, res: Response) => {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    const reminder = await storage.updateReminder(id, req.body);
+    const { targetUserIds, ...updates } = req.body;
+    const reminder = await storage.updateReminder(id, updates);
     if (!reminder) {
       return res.status(404).json({ error: 'Reminder not found' });
     }
-    res.json(reminder);
+    if (targetUserIds && Array.isArray(targetUserIds)) {
+      await storage.setReminderTargets(id, targetUserIds);
+    }
+    const targets = await storage.getReminderTargets(id);
+    res.json({ ...reminder, targetUserIds: targets });
   });
 
   app.delete('/api/reminders/:id', async (req: Request, res: Response) => {
