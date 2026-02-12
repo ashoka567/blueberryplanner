@@ -4,12 +4,19 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Check, Clock, Plus, Loader2, X, Pill, Coffee, Sun, Moon, Info, Trash2 } from "lucide-react";
-import { useCurrentFamily, useFamilyMembers, useMedicines, useMedicineLogs, useCreateMedicineLog, useCreateMedicine, useDeleteMedicine } from "@/hooks/useData";
+import { Check, Clock, Plus, Loader2, X, Pill, Coffee, Sun, Moon, Info, Trash2, User } from "lucide-react";
+import { useCurrentFamily, useFamilyMembers, useMedicines, useMedicineLogs, useCreateMedicineLog, useCreateMedicine, useDeleteMedicine, useAuthUser } from "@/hooks/useData";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function MedicationsPage() {
   const { toast } = useToast();
@@ -21,6 +28,8 @@ export default function MedicationsPage() {
   const createLog = useCreateMedicineLog(family?.id);
   const createMedicine = useCreateMedicine(family?.id);
   const deleteMedicine = useDeleteMedicine(family?.id);
+  const { data: authData } = useAuthUser();
+  const isChild = authData?.user?.isChild;
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [medForm, setMedForm] = useState({ 
@@ -31,7 +40,8 @@ export default function MedicationsPage() {
     evening: false,
     instructions: '',
     startDate: new Date().toISOString().split('T')[0],
-    endDate: '' 
+    endDate: '',
+    assignedTo: '',
   });
 
   const today = new Date();
@@ -63,7 +73,7 @@ export default function MedicationsPage() {
   };
 
   const handleAddMedicine = () => {
-    if (!family?.id || !medForm.name) return;
+    if (!family?.id || !medForm.name || !medForm.assignedTo) return;
     const times: string[] = [];
     if (medForm.morning) times.push('08:00');
     if (medForm.afternoon) times.push('14:00');
@@ -75,10 +85,11 @@ export default function MedicationsPage() {
       inventory: parseInt(medForm.quantity) || 0,
       startDate: medForm.startDate || null,
       endDate: medForm.endDate || null,
+      assignedTo: medForm.assignedTo,
     }, {
       onSuccess: () => {
         toast({ title: "Medication Added", description: `${medForm.name} added to your schedule.` });
-        setMedForm({ name: '', quantity: '', morning: false, afternoon: false, evening: false, instructions: '', startDate: new Date().toISOString().split('T')[0], endDate: '' });
+        setMedForm({ name: '', quantity: '', morning: false, afternoon: false, evening: false, instructions: '', startDate: new Date().toISOString().split('T')[0], endDate: '', assignedTo: '' });
         setShowAddForm(false);
       }
     });
@@ -121,16 +132,18 @@ export default function MedicationsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-end gap-2">
-        <Button 
-          className="bg-[#D2691E] hover:bg-[#B8581A]"
-          onClick={() => setShowAddForm(!showAddForm)}
-          data-testid="button-add-medication"
-        >
-          {showAddForm ? <X className="h-4 w-4 mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-          {showAddForm ? 'Cancel' : 'Add'}
-        </Button>
-      </div>
+      {!isChild && (
+        <div className="flex items-center justify-end gap-2">
+          <Button 
+            className="bg-[#D2691E] hover:bg-[#B8581A]"
+            onClick={() => setShowAddForm(!showAddForm)}
+            data-testid="button-add-medication"
+          >
+            {showAddForm ? <X className="h-4 w-4 mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+            {showAddForm ? 'Cancel' : 'Add'}
+          </Button>
+        </div>
+      )}
 
       {showAddForm && (
         <Card className="shadow-lg border-none animate-in fade-in slide-in-from-top-4 duration-300">
@@ -163,6 +176,35 @@ export default function MedicationsPage() {
                   data-testid="input-medicine-quantity"
                 />
               </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs flex items-center gap-1">
+                <User className="h-3 w-3 text-muted-foreground" />
+                Assigned To <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={medForm.assignedTo}
+                onValueChange={(value) => setMedForm({...medForm, assignedTo: value})}
+              >
+                <SelectTrigger className="h-9" data-testid="select-medicine-assigned-to">
+                  <SelectValue placeholder="Select family member" />
+                </SelectTrigger>
+                <SelectContent className="bg-white shadow-lg border rounded-md" sideOffset={8}>
+                  {members.map((member) => (
+                    <SelectItem key={member.id} value={member.id} data-testid={`option-member-${member.id}`}>
+                      <span className="flex items-center gap-2">
+                        <img 
+                          src={member.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.name}`} 
+                          className="h-5 w-5 rounded-full inline-block" 
+                          alt="" 
+                        />
+                        {member.name} {member.isChild ? '(Child)' : '(Guardian)'}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             
             <div className="space-y-1">
@@ -245,7 +287,7 @@ export default function MedicationsPage() {
                 className="h-9 px-4"
                 onClick={() => {
                   setShowAddForm(false);
-                  setMedForm({ name: '', quantity: '', morning: false, afternoon: false, evening: false, instructions: '', startDate: new Date().toISOString().split('T')[0], endDate: '' });
+                  setMedForm({ name: '', quantity: '', morning: false, afternoon: false, evening: false, instructions: '', startDate: new Date().toISOString().split('T')[0], endDate: '', assignedTo: '' });
                 }}
               >
                 Cancel
@@ -254,7 +296,7 @@ export default function MedicationsPage() {
                 size="sm"
                 className="bg-[#D2691E] hover:bg-[#B8581A] h-9 px-4" 
                 onClick={handleAddMedicine}
-                disabled={!medForm.name || createMedicine.isPending}
+                disabled={!medForm.name || !medForm.assignedTo || createMedicine.isPending}
                 data-testid="button-save-medication"
               >
                 {createMedicine.isPending && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
@@ -316,15 +358,17 @@ export default function MedicationsPage() {
                         <><Clock className="h-3 w-3" /> {takenCount}/{times.length}</>
                       )}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-50"
-                      onClick={() => handleDeleteMedicine(med.id, med.name)}
-                      data-testid={`button-delete-medicine-${med.id}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {!isChild && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-50"
+                        onClick={() => handleDeleteMedicine(med.id, med.name)}
+                        data-testid={`button-delete-medicine-${med.id}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardHeader>
