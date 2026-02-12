@@ -5,6 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Layout from "@/components/Layout";
 import * as api from "@/lib/api";
+import { useNotificationScheduler } from "@/hooks/useNotificationScheduler";
+import { useCurrentFamily } from "@/hooks/useData";
 
 import Dashboard from "@/pages/Dashboard";
 import CalendarPage from "@/pages/Calendar";
@@ -71,6 +73,9 @@ function AuthenticatedRouter() {
       </Switch>
     );
   }
+
+  const family = useCurrentFamily();
+  useNotificationScheduler(family?.id);
 
   return (
     <Layout>
