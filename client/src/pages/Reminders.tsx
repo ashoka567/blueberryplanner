@@ -5,18 +5,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { useCurrentFamily, useReminders, useCreateReminder, useDeleteReminder } from "@/hooks/useData";
+import { useCurrentFamily, useFamilyMembers, useReminders, useCreateReminder, useDeleteReminder, useAuthUser } from "@/hooks/useData";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
-import { Bell, Plus, Trash2, Loader2, Clock, Calendar, X } from "lucide-react";
+import { Bell, Plus, Trash2, Loader2, Clock, Calendar, X, Users, Check } from "lucide-react";
 
 export default function Reminders() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const family = useCurrentFamily();
+  const { data: authUser } = useAuthUser();
+  const { data: members = [] } = useFamilyMembers(family?.id);
   const { data: reminders = [], isLoading } = useReminders(family?.id);
   const createReminder = useCreateReminder(family?.id);
   const deleteReminder = useDeleteReminder();
+
+  const isChild = authUser?.isChild;
 
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
@@ -25,6 +29,13 @@ export default function Reminders() {
     date: '',
     time: '',
   });
+  const [selectedTargets, setSelectedTargets] = useState<string[]>([]);
+
+  const toggleTarget = (userId: string) => {
+    setSelectedTargets(prev =>
+      prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,6 +47,11 @@ export default function Reminders() {
 
     if (!form.date) {
       toast({ title: "Error", description: "Please select a date", variant: "destructive" });
+      return;
+    }
+
+    if (selectedTargets.length === 0) {
+      toast({ title: "Error", description: "Please select at least one family member", variant: "destructive" });
       return;
     }
 
@@ -51,10 +67,12 @@ export default function Reminders() {
         schedule: { type: 'ONCE' },
         startTime: startTime.toISOString(),
         isActive: true,
+        targetUserIds: selectedTargets,
       });
 
       toast({ title: "Reminder Added", description: `"${form.title}" has been scheduled` });
       setForm({ title: '', description: '', date: '', time: '' });
+      setSelectedTargets([]);
       setShowForm(false);
     } catch (error) {
       toast({ title: "Error", description: "Failed to create reminder", variant: "destructive" });
@@ -70,8 +88,13 @@ export default function Reminders() {
     }
   };
 
-  const activeReminders = reminders.filter(r => r.isActive !== false);
-  const sortedReminders = [...activeReminders].sort((a, b) => {
+  const getMemberName = (userId: string) => {
+    const member = members.find(m => m.id === userId);
+    return member?.name || 'Unknown';
+  };
+
+  const activeReminders = reminders.filter((r: any) => r.isActive !== false);
+  const sortedReminders = [...activeReminders].sort((a: any, b: any) => {
     const dateA = a.startTime ? new Date(a.startTime).getTime() : 0;
     const dateB = b.startTime ? new Date(b.startTime).getTime() : 0;
     return dateA - dateB;
@@ -87,18 +110,20 @@ export default function Reminders() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-end gap-2">
-        <Button 
-          onClick={() => setShowForm(!showForm)}
-          className="bg-[#D2691E] hover:bg-[#B8581A]"
-          data-testid="button-add-reminder"
-        >
-          {showForm ? <X className="h-4 w-4 mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-          {showForm ? 'Cancel' : 'Add'}
-        </Button>
-      </div>
+      {!isChild && (
+        <div className="flex items-center justify-end gap-2">
+          <Button 
+            onClick={() => setShowForm(!showForm)}
+            className="bg-[#D2691E] hover:bg-[#B8581A]"
+            data-testid="button-add-reminder"
+          >
+            {showForm ? <X className="h-4 w-4 mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+            {showForm ? 'Cancel' : 'Add'}
+          </Button>
+        </div>
+      )}
 
-      {showForm && (
+      {showForm && !isChild && (
         <Card className="shadow-lg border-none animate-in fade-in slide-in-from-top-4 duration-300">
           <CardHeader className="bg-muted/30 border-b">
             <CardTitle className="text-lg flex items-center gap-2">
@@ -157,6 +182,38 @@ export default function Reminders() {
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-[#D2691E]" />
+                  Assign To
+                </Label>
+                <div className="flex flex-wrap gap-2">
+                  {members.map((member) => {
+                    const isSelected = selectedTargets.includes(member.id);
+                    return (
+                      <button
+                        key={member.id}
+                        type="button"
+                        onClick={() => toggleTarget(member.id)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                          isSelected
+                            ? 'bg-[#D2691E] text-white border-[#D2691E]'
+                            : 'bg-white text-gray-700 border-gray-300 hover:border-[#D2691E] hover:text-[#D2691E]'
+                        }`}
+                        data-testid={`button-toggle-target-${member.id}`}
+                      >
+                        {isSelected && <Check className="h-3.5 w-3.5" />}
+                        {member.name}
+                        {member.isChild && <span className="text-xs opacity-70">(kid)</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+                {selectedTargets.length === 0 && (
+                  <p className="text-xs text-muted-foreground">Select who this reminder is for</p>
+                )}
+              </div>
+
               <div className="flex justify-end gap-3 pt-4">
                 <Button
                   type="button"
@@ -165,6 +222,7 @@ export default function Reminders() {
                   onClick={() => {
                     setShowForm(false);
                     setForm({ title: '', description: '', date: '', time: '' });
+                    setSelectedTargets([]);
                   }}
                 >
                   Cancel
@@ -188,7 +246,7 @@ export default function Reminders() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bell className="h-5 w-5 text-[#D2691E]" />
-            All Reminders
+            {isChild ? 'My Reminders' : 'All Reminders'}
             {sortedReminders.length > 0 && (
               <span className="text-sm font-normal text-muted-foreground">
                 ({sortedReminders.length})
@@ -201,13 +259,14 @@ export default function Reminders() {
             <div className="text-center py-12 text-muted-foreground">
               <Bell className="h-12 w-12 mx-auto mb-3 opacity-40" />
               <p className="font-medium">No reminders yet</p>
-              <p className="text-sm">Click "Add Reminder" to create one</p>
+              {!isChild && <p className="text-sm">Click "Add" to create one</p>}
             </div>
           ) : (
             <div className="space-y-3">
-              {sortedReminders.map((reminder) => {
+              {sortedReminders.map((reminder: any) => {
                 const startDate = reminder.startTime ? new Date(reminder.startTime) : null;
                 const isPast = startDate && startDate < new Date();
+                const targetUserIds: string[] = reminder.targetUserIds || [];
 
                 return (
                   <div
@@ -238,17 +297,33 @@ export default function Reminders() {
                           </span>
                         </div>
                       )}
+                      {targetUserIds.length > 0 && (
+                        <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                          <Users className="h-3.5 w-3.5 text-[#D2691E]" />
+                          {targetUserIds.map((uid: string) => (
+                            <span
+                              key={uid}
+                              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#D2691E]/10 text-[#D2691E]"
+                              data-testid={`reminder-target-${uid}`}
+                            >
+                              {getMemberName(uid)}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(reminder.id, reminder.title)}
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                      data-testid={`button-delete-reminder-${reminder.id}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {!isChild && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(reminder.id, reminder.title)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        data-testid={`button-delete-reminder-${reminder.id}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 );
               })}
