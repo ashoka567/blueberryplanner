@@ -502,7 +502,18 @@ export async function registerRoutes(
         });
       }
       
-      const user = await storage.getUserByEmail(email);
+      let user;
+      try {
+        user = await storage.getUserByEmail(email);
+      } catch (dbError) {
+        console.error('Database error during login lookup:', dbError);
+        try {
+          user = await storage.getUserByEmail(email);
+        } catch (retryError) {
+          console.error('Database retry also failed:', retryError);
+          return res.status(500).json({ error: 'Service temporarily unavailable. Please try again.' });
+        }
+      }
       if (!user || !user.password) {
         recordFailedAttempt(rateLimitKey);
         return res.status(401).json({ error: 'Invalid email or password' });
@@ -516,7 +527,13 @@ export async function registerRoutes(
       
       resetRateLimit(rateLimitKey);
       
-      const familyMembership = await storage.getUserFamily(user.id);
+      let familyMembership;
+      try {
+        familyMembership = await storage.getUserFamily(user.id);
+      } catch (dbError) {
+        console.error('Database error getting family membership:', dbError);
+        familyMembership = await storage.getUserFamily(user.id);
+      }
       
       req.session.userId = user.id;
       req.session.familyId = familyMembership?.familyId || undefined;
@@ -548,7 +565,18 @@ export async function registerRoutes(
       return res.json({ authenticated: false });
     }
     
-    const user = await storage.getUser(req.session.userId);
+    let user;
+    try {
+      user = await storage.getUser(req.session.userId);
+    } catch (dbError) {
+      console.error('Database error in /api/auth/me:', dbError);
+      try {
+        user = await storage.getUser(req.session.userId);
+      } catch (retryError) {
+        console.error('Database retry in /api/auth/me also failed:', retryError);
+        return res.json({ authenticated: false });
+      }
+    }
     if (!user) {
       return res.json({ authenticated: false });
     }
