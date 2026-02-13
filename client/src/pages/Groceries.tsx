@@ -2,9 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Trash2, ShoppingCart, ShoppingBasket, X, Check, Loader2, Store, ArrowRight, Sparkles, RotateCcw } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Plus, Trash2, ShoppingCart, ShoppingBasket, X, Check, Loader2, Store, Undo2, Sparkles, RotateCcw } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
@@ -202,6 +201,11 @@ export default function GroceriesPage() {
     deleteItem.mutate(item.id);
   };
 
+  const clearAllItems = () => {
+    activeItems.forEach(item => saveToBuyAgainAndDelete(item));
+    toast({ title: "Cleared!", description: `${activeItems.length} items deleted.` });
+  };
+
   const clearAllGotIt = () => {
     gotItems.forEach(item => saveToBuyAgainAndDelete(item));
     toast({ title: "Cleared!", description: `${gotItems.length} items deleted.` });
@@ -259,12 +263,15 @@ export default function GroceriesPage() {
               <Trash2 className="h-4 w-4 mr-1" /> Clear
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" sideOffset={8} className="w-48 bg-white shadow-lg border rounded-md">
+          <DropdownMenuContent align="end" sideOffset={8} className="w-52 bg-white shadow-lg border rounded-md">
+            <DropdownMenuItem onClick={clearAllItems} className="gap-2 cursor-pointer" disabled={activeItems.length === 0}>
+              <Trash2 className="h-4 w-4 text-red-500" /> All Items ({activeItems.length})
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={clearAllGotIt} className="gap-2 cursor-pointer" disabled={gotItems.length === 0}>
-              <Check className="h-4 w-4 text-green-600" /> All Got it ({gotItems.length})
+              <Check className="h-4 w-4 text-green-600" /> Got Items ({gotItems.length})
             </DropdownMenuItem>
             <DropdownMenuItem onClick={clearAllNeed} className="gap-2 cursor-pointer" disabled={neededItems.length === 0}>
-              <ShoppingCart className="h-4 w-4 text-[#D2691E]" /> All Need ({neededItems.length})
+              <ShoppingCart className="h-4 w-4 text-[#D2691E]" /> Needed Items ({neededItems.length})
             </DropdownMenuItem>
             {storeNames.length > 0 && (
               <>
@@ -378,26 +385,29 @@ export default function GroceriesPage() {
       )}
 
       {viewMode === 'list' ? (
-        <Tabs defaultValue="needed" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-4 bg-[#D2691E]/10">
-            <TabsTrigger value="needed" className="gap-2 data-[state=active]:bg-[#D2691E] data-[state=active]:text-white" data-testid="tab-needed">
-              <ShoppingCart className="h-4 w-4" /> Need ({neededItems.length})
-            </TabsTrigger>
-            <TabsTrigger value="got" className="gap-2 data-[state=active]:bg-[#D2691E] data-[state=active]:text-white" data-testid="tab-got">
-              <Check className="h-4 w-4" /> Got it ({gotItems.length})
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="needed" className="space-y-3">
-            {neededItems.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <ShoppingCart className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                <p>No items needed. Your list is empty!</p>
-              </div>
-            ) : (
-              neededItems.map(item => (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1"><ShoppingCart className="h-4 w-4 text-[#D2691E]" /> {neededItems.length} needed</span>
+              <span className="flex items-center gap-1"><Check className="h-4 w-4 text-green-500" /> {gotItems.length} got</span>
+            </div>
+          </div>
+          {activeItems.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <ShoppingCart className="h-12 w-12 mx-auto mb-4 opacity-30" />
+              <p>Your grocery list is empty! Add items above.</p>
+            </div>
+          ) : (
+            <>
+              {neededItems.map(item => (
                 <Card key={item.id} className="overflow-hidden shadow-lg border-none" data-testid={`card-grocery-needed-${item.id}`}>
                   <div className="flex items-center p-4 gap-4">
+                    <button
+                      onClick={() => moveToGot(item.id)}
+                      className="flex-shrink-0 w-6 h-6 rounded-full border-2 border-[#D2691E] hover:bg-[#D2691E]/10 transition-colors"
+                      data-testid={`button-got-${item.id}`}
+                      aria-label={`Mark ${item.name} as got`}
+                    />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold truncate">{item.name}</span>
@@ -410,71 +420,55 @@ export default function GroceriesPage() {
                       {item.notes && <p className="text-xs text-muted-foreground mt-1 italic">{item.notes}</p>}
                     </div>
                     <Button 
-                      onClick={() => moveToGot(item.id)} 
-                      size="sm" 
-                      className="bg-green-500 hover:bg-green-600 gap-1 h-9"
-                      data-testid={`button-got-${item.id}`}
-                    >
-                      <Check className="h-4 w-4" /> Got it
-                    </Button>
-                    <Button 
                       onClick={() => removeItem(item.id)} 
                       variant="ghost" 
                       size="icon" 
-                      className="text-muted-foreground hover:text-destructive"
+                      className="text-muted-foreground hover:text-destructive flex-shrink-0"
                       data-testid={`button-delete-${item.id}`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </Card>
-              ))
-            )}
-          </TabsContent>
-
-          <TabsContent value="got" className="space-y-3">
-            {gotItems.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <Check className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                <p>No items purchased yet.</p>
-              </div>
-            ) : (
-              gotItems.map(item => (
+              ))}
+              {gotItems.length > 0 && neededItems.length > 0 && (
+                <div className="border-t border-dashed border-green-300 my-2" />
+              )}
+              {gotItems.map(item => (
                 <Card key={item.id} className="overflow-hidden bg-green-50/50 shadow-lg border-none" data-testid={`card-grocery-got-${item.id}`}>
                   <div className="flex items-center p-4 gap-4">
+                    <button
+                      onClick={() => moveToNeeded(item.id)}
+                      className="flex-shrink-0 w-6 h-6 rounded-full border-2 border-green-500 bg-green-500 flex items-center justify-center hover:bg-green-400 transition-colors"
+                      data-testid={`button-needed-${item.id}`}
+                      aria-label={`Move ${item.name} back to needed`}
+                    >
+                      <Check className="h-3.5 w-3.5 text-white" />
+                    </button>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold truncate line-through text-muted-foreground">{item.name}</span>
-                        {item.quantity && <Badge variant="secondary" className="text-xs">{item.quantity}</Badge>}
+                        {item.quantity && <Badge variant="secondary" className="text-xs opacity-60">{item.quantity}</Badge>}
                       </div>
                       <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                         {item.store && <span className="flex items-center gap-1"><Store className="h-3 w-3" /> {item.store}</span>}
                       </div>
                     </div>
                     <Button 
-                      onClick={() => moveToNeeded(item.id)} 
-                      variant="outline" 
-                      size="sm" 
-                      className="gap-1 h-9"
-                      data-testid={`button-needed-${item.id}`}
-                    >
-                      <ArrowRight className="h-4 w-4" /> Need Again
-                    </Button>
-                    <Button 
                       onClick={() => removeItem(item.id)} 
                       variant="ghost" 
                       size="icon" 
-                      className="text-muted-foreground hover:text-destructive"
+                      className="text-muted-foreground hover:text-destructive flex-shrink-0"
                       data-testid={`button-delete-got-${item.id}`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </Card>
-              ))
-            )}
-          </TabsContent>
-        </Tabs>
+              ))}
+            </>
+          )}
+        </div>
       ) : (
         <div className="space-y-6">
           {Object.keys(itemsByStore).length === 0 ? (
