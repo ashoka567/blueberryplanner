@@ -403,19 +403,17 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex flex-col gap-3 lg:gap-6">
-      <div className="flex justify-end">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setEditMode(true)}
-          className="gap-2 text-[#D2691E] border-[#D2691E]/30 hover:bg-[#D2691E]/10"
-          data-testid="button-edit-dashboard"
-        >
-          <Settings className="h-4 w-4" />
-          Edit Dashboard
-        </Button>
-      </div>
+    <div className="relative flex flex-col gap-3 lg:gap-6">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setEditMode(true)}
+        className="absolute top-0 right-0 gap-2 text-[#D2691E] border-[#D2691E]/30 hover:bg-[#D2691E]/10 z-10"
+        data-testid="button-edit-dashboard"
+      >
+        <Settings className="h-4 w-4" />
+        Edit Dashboard
+      </Button>
 
       <div className="grid gap-3 lg:gap-6 md:grid-cols-2">
         {sortedWidgets.map(config => (
