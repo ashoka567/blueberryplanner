@@ -428,7 +428,7 @@ export default function Dashboard() {
       </div>
 
       <Dialog open={editMode} onOpenChange={setEditMode}>
-        <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-md max-h-[80vh] overflow-y-auto p-4">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-[#D2691E]">
               <Settings className="h-5 w-5" /> Customize Dashboard
@@ -441,8 +441,8 @@ export default function Dashboard() {
               if (!entry) return null;
               const Icon = entry.icon;
               return (
-                <div key={widget.id} className="flex items-center gap-3 p-3 rounded-lg border bg-card" data-testid={`widget-config-${widget.id}`}>
-                  <div className="flex flex-col gap-0.5">
+                <div key={widget.id} className="flex items-center gap-2 p-2 rounded-lg border bg-card" data-testid={`widget-config-${widget.id}`}>
+                  <div className="flex flex-col gap-0.5 shrink-0">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -465,13 +465,14 @@ export default function Dashboard() {
                     </Button>
                   </div>
                   <Icon className="h-4 w-4 text-[#D2691E] shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{entry.title}</p>
+                  <div className="flex-1 min-w-0 overflow-hidden">
+                    <p className="text-sm font-medium truncate">{entry.title}</p>
                     <p className="text-xs text-muted-foreground truncate">{entry.description}</p>
                   </div>
                   <Switch
                     checked={widget.visible}
                     onCheckedChange={() => toggleWidgetVisibility(index)}
+                    className="shrink-0"
                     data-testid={`switch-widget-${widget.id}`}
                   />
                 </div>
