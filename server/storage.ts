@@ -14,7 +14,7 @@ import {
   type DashboardConfig
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, ilike } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -99,7 +99,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const result = await db.select().from(users).where(eq(users.email, email));
+    const result = await db.select().from(users).where(ilike(users.email, email.toLowerCase().trim()));
     return result[0];
   }
 
