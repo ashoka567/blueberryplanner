@@ -218,6 +218,13 @@ export const notificationSettings = pgTable("notification_settings", {
   updatedAt: timestamp("updated_at").default(sql`NOW()`),
 });
 
+export const dashboardConfig = pgTable("dashboard_config", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  widgets: jsonb("widgets").notNull(),
+  updatedAt: timestamp("updated_at").default(sql`NOW()`),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertFamilySchema = createInsertSchema(families).omit({ id: true, createdAt: true });
 export const insertRoleSchema = createInsertSchema(roles).omit({ id: true });
@@ -232,6 +239,7 @@ export const insertMedicineSchema = createInsertSchema(medicines).omit({ id: tru
 export const insertMedicineLogSchema = createInsertSchema(medicineLogs).omit({ id: true });
 export const insertReminderSchema = createInsertSchema(reminders).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertNotificationSettingsSchema = createInsertSchema(notificationSettings).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertDashboardConfigSchema = createInsertSchema(dashboardConfig).omit({ id: true, updatedAt: true });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -259,3 +267,5 @@ export type InsertReminder = z.infer<typeof insertReminderSchema>;
 export type Reminder = typeof reminders.$inferSelect;
 export type InsertNotificationSettings = z.infer<typeof insertNotificationSettingsSchema>;
 export type NotificationSettings = typeof notificationSettings.$inferSelect;
+export type InsertDashboardConfig = z.infer<typeof insertDashboardConfigSchema>;
+export type DashboardConfig = typeof dashboardConfig.$inferSelect;

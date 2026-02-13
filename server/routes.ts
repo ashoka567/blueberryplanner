@@ -1077,6 +1077,39 @@ export async function registerRoutes(
     }
   });
 
+  app.get('/api/dashboard-config', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+      const config = await storage.getDashboardConfig(req.session.userId);
+      if (!config) {
+        return res.json({ widgets: null });
+      }
+      res.json(config);
+    } catch (error) {
+      console.error('Error getting dashboard config:', error);
+      res.status(500).json({ error: 'Failed to get dashboard config' });
+    }
+  });
+
+  app.post('/api/dashboard-config', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+      const { widgets } = req.body;
+      if (!widgets || !Array.isArray(widgets)) {
+        return res.status(400).json({ error: 'widgets array is required' });
+      }
+      const config = await storage.upsertDashboardConfig(req.session.userId, widgets);
+      res.json(config);
+    } catch (error) {
+      console.error('Error saving dashboard config:', error);
+      res.status(500).json({ error: 'Failed to save dashboard config' });
+    }
+  });
+
   app.patch('/api/users/:id/points', async (req: Request, res: Response) => {
     try {
       if (!req.session.userId) {

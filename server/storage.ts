@@ -2,6 +2,7 @@ import {
   users, families, roles, permissions, rolePermissions, familyMembers, 
   chores, groceryItems, groceryEssentials, groceryStores, groceryBuyAgain,
   medicines, medicineLogs, reminders, reminderTargets, emailVerifications, notificationSettings,
+  dashboardConfig,
   type User, type InsertUser, type Family, type InsertFamily,
   type Role, type Permission, type FamilyMember, type InsertFamilyMember,
   type Chore, type InsertChore, type GroceryItem, type InsertGroceryItem,
@@ -9,7 +10,8 @@ import {
   type GroceryStore, type InsertGroceryStore,
   type GroceryBuyAgain, type InsertGroceryBuyAgain,
   type Medicine, type InsertMedicine, type MedicineLog, type InsertMedicineLog,
-  type Reminder, type InsertReminder, type NotificationSettings, type InsertNotificationSettings
+  type Reminder, type InsertReminder, type NotificationSettings, type InsertNotificationSettings,
+  type DashboardConfig
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, inArray } from "drizzle-orm";
@@ -81,6 +83,9 @@ export interface IStorage {
 
   getNotificationSettings(userId: string, familyId: string): Promise<NotificationSettings | undefined>;
   upsertNotificationSettings(settings: InsertNotificationSettings): Promise<NotificationSettings>;
+
+  getDashboardConfig(userId: string): Promise<DashboardConfig | undefined>;
+  upsertDashboardConfig(userId: string, widgets: any): Promise<DashboardConfig>;
 
   seedDefaultData(): Promise<void>;
 }
@@ -463,6 +468,24 @@ export class DatabaseStorage implements IStorage {
       return result[0];
     }
     const result = await db.insert(notificationSettings).values(settings).returning();
+    return result[0];
+  }
+
+  async getDashboardConfig(userId: string): Promise<DashboardConfig | undefined> {
+    const result = await db.select().from(dashboardConfig).where(eq(dashboardConfig.userId, userId));
+    return result[0];
+  }
+
+  async upsertDashboardConfig(userId: string, widgets: any): Promise<DashboardConfig> {
+    const existing = await this.getDashboardConfig(userId);
+    if (existing) {
+      const result = await db.update(dashboardConfig)
+        .set({ widgets, updatedAt: new Date() })
+        .where(eq(dashboardConfig.id, existing.id))
+        .returning();
+      return result[0];
+    }
+    const result = await db.insert(dashboardConfig).values({ userId, widgets }).returning();
     return result[0];
   }
 }

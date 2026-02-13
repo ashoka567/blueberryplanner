@@ -564,6 +564,27 @@ export async function verifyResetPassword(email: string): Promise<VerifyResetRes
   return res.json();
 }
 
+export interface DashboardConfigResponse {
+  id?: string;
+  userId?: string;
+  widgets: Array<{ id: string; visible: boolean; position: number }> | null;
+  updatedAt?: string;
+}
+
+export async function getDashboardConfig(): Promise<DashboardConfigResponse> {
+  const res = await fetchWithCredentials(`${API_BASE}/dashboard-config`);
+  return res.json();
+}
+
+export async function saveDashboardConfig(widgets: Array<{ id: string; visible: boolean; position: number }>): Promise<DashboardConfigResponse> {
+  const res = await fetchWithCredentials(`${API_BASE}/dashboard-config`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ widgets }),
+  });
+  return res.json();
+}
+
 export async function resetPassword(email: string, securityAnswer1: string, securityAnswer2: string, newPassword: string): Promise<{ success: boolean }> {
   const res = await fetchWithCredentials(`${API_BASE}/auth/reset-password`, {
     method: 'POST',
