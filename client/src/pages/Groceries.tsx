@@ -402,12 +402,6 @@ export default function GroceriesPage() {
               {neededItems.map(item => (
                 <Card key={item.id} className="overflow-hidden shadow-lg border-none" data-testid={`card-grocery-needed-${item.id}`}>
                   <div className="flex items-center p-4 gap-4">
-                    <button
-                      onClick={() => moveToGot(item.id)}
-                      className="flex-shrink-0 w-6 h-6 rounded-full border-2 border-[#D2691E] hover:bg-[#D2691E]/10 transition-colors"
-                      data-testid={`button-got-${item.id}`}
-                      aria-label={`Mark ${item.name} as got`}
-                    />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold truncate">{item.name}</span>
@@ -419,6 +413,14 @@ export default function GroceriesPage() {
                       </div>
                       {item.notes && <p className="text-xs text-muted-foreground mt-1 italic">{item.notes}</p>}
                     </div>
+                    <Button 
+                      onClick={() => moveToGot(item.id)} 
+                      size="sm" 
+                      className="bg-green-500 hover:bg-green-600 gap-1 h-9 flex-shrink-0"
+                      data-testid={`button-got-${item.id}`}
+                    >
+                      <Check className="h-4 w-4" /> Got it
+                    </Button>
                     <Button 
                       onClick={() => removeItem(item.id)} 
                       variant="ghost" 
@@ -437,14 +439,6 @@ export default function GroceriesPage() {
               {gotItems.map(item => (
                 <Card key={item.id} className="overflow-hidden bg-green-50/50 shadow-lg border-none" data-testid={`card-grocery-got-${item.id}`}>
                   <div className="flex items-center p-4 gap-4">
-                    <button
-                      onClick={() => moveToNeeded(item.id)}
-                      className="flex-shrink-0 w-6 h-6 rounded-full border-2 border-green-500 bg-green-500 flex items-center justify-center hover:bg-green-400 transition-colors"
-                      data-testid={`button-needed-${item.id}`}
-                      aria-label={`Move ${item.name} back to needed`}
-                    >
-                      <Check className="h-3.5 w-3.5 text-white" />
-                    </button>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold truncate line-through text-muted-foreground">{item.name}</span>
@@ -454,6 +448,15 @@ export default function GroceriesPage() {
                         {item.store && <span className="flex items-center gap-1"><Store className="h-3 w-3" /> {item.store}</span>}
                       </div>
                     </div>
+                    <Button 
+                      onClick={() => moveToNeeded(item.id)} 
+                      variant="outline" 
+                      size="sm" 
+                      className="gap-1 h-9 border-[#D2691E] text-[#D2691E] hover:bg-[#D2691E]/10 flex-shrink-0"
+                      data-testid={`button-needed-${item.id}`}
+                    >
+                      <Undo2 className="h-4 w-4" /> Buy Again
+                    </Button>
                     <Button 
                       onClick={() => removeItem(item.id)} 
                       variant="ghost" 
