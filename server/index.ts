@@ -28,6 +28,8 @@ declare module "express-session" {
   interface SessionData {
     userId: string;
     familyId: string;
+    isChild: boolean;
+    isSuperAdmin: boolean;
   }
 }
 

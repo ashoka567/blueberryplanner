@@ -492,8 +492,9 @@ export async function registerRoutes(
         return res.status(400).json({ error: 'Email and password are required' });
       }
       
+      const normalizedEmail = email.toLowerCase().trim();
       const clientIP = req.ip || req.socket.remoteAddress || 'unknown';
-      const rateLimitKey = `login:${email.toLowerCase()}:${clientIP}`;
+      const rateLimitKey = `login:${normalizedEmail}:${clientIP}`;
       const rateCheck = checkRateLimit(rateLimitKey);
       if (!rateCheck.allowed) {
         return res.status(429).json({ 
@@ -503,23 +504,32 @@ export async function registerRoutes(
       }
       
       let user;
-      try {
-        user = await storage.getUserByEmail(email);
-      } catch (dbError) {
-        console.error('Database error during login lookup:', dbError);
+      for (let attempt = 1; attempt <= 3; attempt++) {
         try {
-          user = await storage.getUserByEmail(email);
-        } catch (retryError) {
-          console.error('Database retry also failed:', retryError);
-          return res.status(500).json({ error: 'Service temporarily unavailable. Please try again.' });
+          user = await storage.getUserByEmail(normalizedEmail);
+          break;
+        } catch (dbError) {
+          console.error(`Database error during login lookup (attempt ${attempt}/3):`, dbError);
+          if (attempt === 3) {
+            return res.status(500).json({ error: 'Service temporarily unavailable. Please try again in a moment.' });
+          }
+          await new Promise(resolve => setTimeout(resolve, 500 * attempt));
         }
       }
+
       if (!user || !user.password) {
         recordFailedAttempt(rateLimitKey);
         return res.status(401).json({ error: 'Invalid email or password' });
       }
       
-      const passwordMatch = await bcrypt.compare(password, user.password);
+      let passwordMatch = false;
+      try {
+        passwordMatch = await bcrypt.compare(password, user.password);
+      } catch (bcryptError) {
+        console.error('Bcrypt comparison error:', bcryptError);
+        return res.status(500).json({ error: 'Authentication service error. Please try again.' });
+      }
+
       if (!passwordMatch) {
         recordFailedAttempt(rateLimitKey);
         return res.status(401).json({ error: 'Invalid email or password' });
@@ -527,21 +537,33 @@ export async function registerRoutes(
       
       resetRateLimit(rateLimitKey);
       
-      let familyMembership;
+      let familyId: string | undefined;
       try {
-        familyMembership = await storage.getUserFamily(user.id);
+        const familyMembership = await storage.getUserFamily(user.id);
+        familyId = familyMembership?.familyId;
       } catch (dbError) {
-        console.error('Database error getting family membership:', dbError);
-        familyMembership = await storage.getUserFamily(user.id);
+        console.error('Database error getting family membership (non-fatal):', dbError);
+        familyId = undefined;
       }
       
       req.session.userId = user.id;
-      req.session.familyId = familyMembership?.familyId || undefined;
+      req.session.familyId = familyId;
+      
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) {
+            console.error('Session save error during login:', err);
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      });
       
       res.json({
         success: true,
         user: { id: user.id, name: user.name, email: user.email, isChild: user.isChild },
-        familyId: familyMembership?.familyId,
+        familyId,
       });
     } catch (error) {
       console.error('Login error:', error);
