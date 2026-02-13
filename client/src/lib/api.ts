@@ -452,6 +452,13 @@ export async function logout(): Promise<void> {
   await fetchWithCredentials(`${API_BASE}/auth/logout`, { method: 'POST' });
 }
 
+export async function deleteAccount(): Promise<{ success: boolean }> {
+  clearAuthFromStorage();
+  const res = await fetchWithCredentials(`${API_BASE}/auth/account`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('Failed to delete account');
+  return res.json();
+}
+
 export interface MeResponse {
   authenticated: boolean;
   user?: AuthUser;

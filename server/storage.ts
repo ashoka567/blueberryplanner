@@ -87,6 +87,8 @@ export interface IStorage {
   getDashboardConfig(userId: string): Promise<DashboardConfig | undefined>;
   upsertDashboardConfig(userId: string, widgets: any): Promise<DashboardConfig>;
 
+  deleteUserAccount(userId: string): Promise<void>;
+
   seedDefaultData(): Promise<void>;
 }
 
@@ -487,6 +489,17 @@ export class DatabaseStorage implements IStorage {
     }
     const result = await db.insert(dashboardConfig).values({ userId, widgets }).returning();
     return result[0];
+  }
+
+  async deleteUserAccount(userId: string): Promise<void> {
+    await db.delete(dashboardConfig).where(eq(dashboardConfig.userId, userId));
+    await db.delete(notificationSettings).where(eq(notificationSettings.userId, userId));
+    await db.delete(emailVerifications).where(eq(emailVerifications.userId, userId));
+    await db.delete(reminderTargets).where(eq(reminderTargets.userId, userId));
+    await db.delete(medicineLogs).where(eq(medicineLogs.takenBy, userId));
+    await db.delete(medicineLogs).where(eq(medicineLogs.markedBy, userId));
+    await db.delete(familyMembers).where(eq(familyMembers.userId, userId));
+    await db.delete(users).where(eq(users.id, userId));
   }
 }
 

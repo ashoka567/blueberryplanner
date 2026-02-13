@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrentFamily, useFamilyMembers, useAuthUser } from "@/hooks/useData";
-import { updateUserPin, updateUserPoints, getSecurityQuestions, updateSecurityQuestions } from "@/lib/api";
-import { Loader2, User, Baby, Shield, KeyRound, Check, X, Trophy, Minus, ShieldQuestion, AlertTriangle } from "lucide-react";
+import { updateUserPin, updateUserPoints, getSecurityQuestions, updateSecurityQuestions, deleteAccount } from "@/lib/api";
+import { Loader2, User, Baby, Shield, KeyRound, Check, X, Trophy, Minus, ShieldQuestion, AlertTriangle, Trash2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,7 @@ export default function Settings() {
   const family = useCurrentFamily();
   const { data: members = [], isLoading } = useFamilyMembers(family?.id);
   const { data: authData } = useAuthUser();
+  const [, setLocation] = useLocation();
   const getKidPoints = (kid: any) => {
     return kid.chorePoints || 0;
   };
@@ -33,6 +35,9 @@ export default function Settings() {
   const [newPin, setNewPin] = useState('');
   const [newPoints, setNewPoints] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
   const queryClient = useQueryClient();
 
   const [securityQ1, setSecurityQ1] = useState('');
@@ -518,6 +523,99 @@ export default function Settings() {
           </div>
         </CardContent>
       </Card>
+
+      <Card className="border-red-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-red-600">
+            <Trash2 className="h-5 w-5" />
+            Delete Account
+          </CardTitle>
+          <CardDescription>
+            Permanently delete your account and all associated data. This action cannot be undone.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+            <p className="text-sm text-red-800">
+              Deleting your account will permanently remove all your personal data, settings, medication logs, and notification preferences. This cannot be reversed.
+            </p>
+          </div>
+          <Button
+            variant="destructive"
+            onClick={() => setShowDeleteConfirm(true)}
+            data-testid="button-delete-account"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete My Account
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Dialog open={showDeleteConfirm} onOpenChange={(open) => {
+        if (!open) {
+          setShowDeleteConfirm(false);
+          setDeleteConfirmText('');
+        }
+      }}>
+        <DialogContent className="!w-[90vw] !max-w-sm !p-4">
+          <DialogHeader>
+            <DialogTitle className="text-red-600">Delete Account</DialogTitle>
+            <DialogDescription>
+              This will permanently delete your account and all your data. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p className="text-sm text-red-800 font-medium">You will lose:</p>
+              <ul className="text-sm text-red-700 mt-1 list-disc list-inside space-y-0.5">
+                <li>Your account and login access</li>
+                <li>All medication logs and settings</li>
+                <li>Notification preferences</li>
+                <li>Dashboard customizations</li>
+              </ul>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm">Type <span className="font-bold">DELETE</span> to confirm</Label>
+              <Input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="Type DELETE"
+                data-testid="input-delete-confirm"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => {
+              setShowDeleteConfirm(false);
+              setDeleteConfirmText('');
+            }}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteConfirmText !== 'DELETE' || isDeleting}
+              onClick={async () => {
+                setIsDeleting(true);
+                try {
+                  await deleteAccount();
+                  queryClient.clear();
+                  toast({ title: "Account Deleted", description: "Your account has been permanently deleted." });
+                  setShowDeleteConfirm(false);
+                  setLocation('/login');
+                } catch (error) {
+                  toast({ title: "Failed", description: "Could not delete account. Please try again.", variant: "destructive" });
+                } finally {
+                  setIsDeleting(false);
+                }
+              }}
+              data-testid="button-confirm-delete"
+            >
+              {isDeleting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Permanently Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

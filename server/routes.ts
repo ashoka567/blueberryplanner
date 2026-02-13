@@ -560,6 +560,23 @@ export async function registerRoutes(
     });
   });
 
+  app.delete('/api/auth/account', async (req: Request, res: Response) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+    try {
+      await storage.deleteUserAccount(req.session.userId);
+      req.session.destroy((err) => {
+        if (err) console.error('Session destroy error after account deletion:', err);
+        res.clearCookie('connect.sid');
+        res.json({ success: true });
+      });
+    } catch (error) {
+      console.error('Account deletion error:', error);
+      res.status(500).json({ error: 'Failed to delete account' });
+    }
+  });
+
   app.get('/api/auth/me', async (req: Request, res: Response) => {
     if (!req.session.userId) {
       return res.json({ authenticated: false });
