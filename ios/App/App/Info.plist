@@ -47,8 +47,6 @@
         </array>
         <key>UIViewControllerBasedStatusBarAppearance</key>
         <true/>
-        <key>NSUserNotificationsUsageDescription</key>
-        <string>Blueberry Planner sends reminders for medications, chores, and scheduled events to help keep your family organized.</string>
         <key>NSUserNotificationUsageDescription</key>
         <string>Blueberry Planner sends reminders for medications, chores, and events.</string>
 </dict>
