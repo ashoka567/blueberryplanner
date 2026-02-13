@@ -428,47 +428,38 @@ export default function Dashboard() {
       </div>
 
       <Dialog open={editMode} onOpenChange={setEditMode}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-md max-h-[80vh] overflow-y-auto p-4">
+        <DialogContent className="!w-[90vw] !max-w-sm !p-3 max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-[#D2691E]">
-              <Settings className="h-5 w-5" /> Customize Dashboard
+            <DialogTitle className="flex items-center gap-2 text-[#D2691E] text-base">
+              <Settings className="h-4 w-4" /> Customize Dashboard
             </DialogTitle>
-            <DialogDescription>Show, hide, or reorder your dashboard widgets.</DialogDescription>
+            <DialogDescription className="text-xs">Show, hide, or reorder widgets.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-2 py-2">
+          <div className="space-y-1.5 py-1">
             {editWidgets.map((widget, index) => {
               const entry = WIDGET_REGISTRY[widget.id];
               if (!entry) return null;
-              const Icon = entry.icon;
               return (
-                <div key={widget.id} className="flex items-center gap-2 p-2 rounded-lg border bg-card" data-testid={`widget-config-${widget.id}`}>
-                  <div className="flex flex-col gap-0.5 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5"
+                <div key={widget.id} className="flex items-center gap-1.5 p-1.5 rounded-lg border bg-card" data-testid={`widget-config-${widget.id}`}>
+                  <div className="flex flex-col shrink-0">
+                    <button
+                      className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30"
                       onClick={() => moveWidget(index, 'up')}
                       disabled={index === 0}
                       data-testid={`button-move-up-${widget.id}`}
                     >
-                      <ChevronUp className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5"
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30"
                       onClick={() => moveWidget(index, 'down')}
                       disabled={index === editWidgets.length - 1}
                       data-testid={`button-move-down-${widget.id}`}
                     >
-                      <ChevronDown className="h-3 w-3" />
-                    </Button>
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </button>
                   </div>
-                  <Icon className="h-4 w-4 text-[#D2691E] shrink-0" />
-                  <div className="flex-1 min-w-0 overflow-hidden">
-                    <p className="text-sm font-medium truncate">{entry.title}</p>
-                    <p className="text-xs text-muted-foreground truncate">{entry.description}</p>
-                  </div>
+                  <span className="flex-1 text-sm font-medium truncate">{entry.title}</span>
                   <Switch
                     checked={widget.visible}
                     onCheckedChange={() => toggleWidgetVisibility(index)}
@@ -479,16 +470,17 @@ export default function Dashboard() {
               );
             })}
           </div>
-          <div className="flex justify-end gap-3 pt-2">
-            <Button variant="outline" onClick={() => setEditMode(false)}>Cancel</Button>
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="outline" size="sm" onClick={() => setEditMode(false)}>Cancel</Button>
             <Button
+              size="sm"
               className="bg-[#D2691E] hover:bg-[#B8581A]"
               onClick={saveWidgetConfig}
               disabled={saveDashboardMutation.isPending}
               data-testid="button-save-dashboard"
             >
               {saveDashboardMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Save Layout
+              Save
             </Button>
           </div>
         </DialogContent>
