@@ -16,3 +16,27 @@ ios/App/App.xcworkspace/xcshareddata/swiftpm/Package.resolved
 # iOS - Xcode derived data
 DerivedData/
 ios/App/DerivedData/
+ios/App/fastlane/screenshots/en-US/iPhone 17 Pro Max-07_Reminders.png
+ios/App/AppUITests/AppUITests.swift
+ios/App/fastlane/README.md
+ios/App/fastlane/report.xml
+ios/App/fastlane/screenshots/en-US/iPad Pro 13-inch (M5)-01_Login.png
+ios/App/fastlane/screenshots/en-US/iPad Pro 13-inch (M5)-02_Dashboard.png
+ios/App/fastlane/screenshots/en-US/iPad Pro 13-inch (M5)-03_Calendar.png
+ios/App/fastlane/screenshots/en-US/iPad Pro 13-inch (M5)-04_Medications.png
+ios/App/fastlane/screenshots/en-US/iPad Pro 13-inch (M5)-05_Chores.png
+ios/App/fastlane/screenshots/en-US/iPad Pro 13-inch (M5)-06_Groceries.png
+ios/App/fastlane/screenshots/en-US/iPad Pro 13-inch (M5)-07_Reminders.png
+ios/App/fastlane/screenshots/en-US/iPad Pro 13-inch (M5)-08_Notifications.png
+ios/App/fastlane/screenshots/en-US/iPad Pro 13-inch (M5)-09_Settings.png
+ios/App/fastlane/screenshots/en-US/iPad Pro 13-inch (M5)-10_Support.png
+ios/App/fastlane/screenshots/en-US/iPhone 17 Pro Max-01_Login.png
+ios/App/fastlane/screenshots/en-US/iPhone 17 Pro Max-02_Dashboard.png
+ios/App/fastlane/screenshots/en-US/iPhone 17 Pro Max-03_Calendar.png
+ios/App/fastlane/screenshots/en-US/iPhone 17 Pro Max-04_Medications.png
+ios/App/fastlane/screenshots/en-US/iPhone 17 Pro Max-05_Chores.png
+ios/App/fastlane/screenshots/en-US/iPhone 17 Pro Max-06_Groceries.png
+ios/App/fastlane/screenshots/en-US/iPhone 17 Pro Max-08_Notifications.png
+ios/App/fastlane/screenshots/en-US/iPhone 17 Pro Max-09_Settings.png
+ios/App/fastlane/screenshots/en-US/iPhone 17 Pro Max-10_Support.png
+ios/App/fastlane/screenshots/screenshots.html
