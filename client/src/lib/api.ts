@@ -592,6 +592,52 @@ export async function saveDashboardConfig(widgets: Array<{ id: string; visible: 
   return res.json();
 }
 
+export interface AddFamilyMemberData {
+  name: string;
+  email?: string;
+  password?: string;
+  isChild: boolean;
+  age?: number;
+  pin?: string;
+}
+
+export async function addFamilyMember(data: AddFamilyMemberData): Promise<any> {
+  const res = await fetchWithCredentials(`${API_BASE}/family/members`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Failed to add family member');
+  }
+  return res.json();
+}
+
+export async function updateFamilyMember(userId: string, data: Partial<AddFamilyMemberData>): Promise<any> {
+  const res = await fetchWithCredentials(`${API_BASE}/family/members/${userId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Failed to update family member');
+  }
+  return res.json();
+}
+
+export async function removeFamilyMember(userId: string): Promise<{ success: boolean }> {
+  const res = await fetchWithCredentials(`${API_BASE}/family/members/${userId}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Failed to remove family member');
+  }
+  return res.json();
+}
+
 export async function resetPassword(email: string, securityAnswer1: string, securityAnswer2: string, newPassword: string): Promise<{ success: boolean }> {
   const res = await fetchWithCredentials(`${API_BASE}/auth/reset-password`, {
     method: 'POST',
