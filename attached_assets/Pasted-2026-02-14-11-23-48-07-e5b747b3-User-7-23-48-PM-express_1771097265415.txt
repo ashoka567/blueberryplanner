@@ -1,0 +1,64 @@
+2026-02-14 11:23:48.07
+e5b747b3
+User
+7:23:48 PM [express] GET /api/notification-settings 304 in 104ms :: {"id":"19eb9f8a-5b27-4f55-9350-fc2a5d77cb7e","userId":"48ee5dc1-c33b-4925-ba96-c11f19fb9fed","familyId":"37157fe2-7dab-451a-bc2b-67612e0229bf","medicationsEnabled":false,"medicationsMinutes":15,"choresEnabled":true,"choresMinutes":30,"remindersEnabled":true,"remindersMinutes":15,"groceriesEnabled":false,"calendarEnabled":true,"calendarMinutes":15,"pushEnabled":false,"pushSubscription":null,"createdAt":"2026-02-12T19:58:00.122Z","updatedAt":"2026-02-12T19:58:00.122Z"}
+2026-02-14 11:23:53.42
+e5b747b3
+User
+7:23:53 PM [express] GET /api/notification-settings 304 in 87ms :: {"id":"19eb9f8a-5b27-4f55-9350-fc2a5d77cb7e","userId":"48ee5dc1-c33b-4925-ba96-c11f19fb9fed","familyId":"37157fe2-7dab-451a-bc2b-67612e0229bf","medicationsEnabled":false,"medicationsMinutes":15,"choresEnabled":true,"choresMinutes":30,"remindersEnabled":true,"remindersMinutes":15,"groceriesEnabled":false,"calendarEnabled":true,"calendarMinutes":15,"pushEnabled":false,"pushSubscription":null,"createdAt":"2026-02-12T19:58:00.122Z","updatedAt":"2026-02-12T19:58:00.122Z"}
+2026-02-14 11:24:14.55
+e5b747b3
+User
+7:24:14 PM [express] GET /api/notification-settings 304 in 88ms :: {"id":"19eb9f8a-5b27-4f55-9350-fc2a5d77cb7e","userId":"48ee5dc1-c33b-4925-ba96-c11f19fb9fed","familyId":"37157fe2-7dab-451a-bc2b-67612e0229bf","medicationsEnabled":false,"medicationsMinutes":15,"choresEnabled":true,"choresMinutes":30,"remindersEnabled":true,"remindersMinutes":15,"groceriesEnabled":false,"calendarEnabled":true,"calendarMinutes":15,"pushEnabled":false,"pushSubscription":null,"createdAt":"2026-02-12T19:58:00.122Z","updatedAt":"2026-02-12T19:58:00.122Z"}
+2026-02-14 11:24:17.89
+e5b747b3
+User
+at Ss.mapToDriverValue (/home/runner/workspace/dist/index.cjs:65:68983)
+2026-02-14 11:24:17.89
+e5b747b3
+User
+at /home/runner/workspace/dist/index.cjs:65:46028
+2026-02-14 11:24:17.89
+e5b747b3
+User
+at Array.map ()
+2026-02-14 11:24:17.89
+e5b747b3
+User
+at t.buildQueryFromSourceParams (/home/runner/workspace/dist/index.cjs:65:45688)
+2026-02-14 11:24:17.89
+e5b747b3
+User
+at t.buildQueryFromSourceParams (/home/runner/workspace/dist/index.cjs:65:45688)
+2026-02-14 11:24:17.89
+e5b747b3
+User
+Error saving notification settings: TypeError: e.toISOString is not a function
+2026-02-14 11:24:17.89
+e5b747b3
+User
+at Array.map ()
+2026-02-14 11:24:17.89
+e5b747b3
+User
+at Array.map ()
+2026-02-14 11:24:17.89
+e5b747b3
+User
+at /home/runner/workspace/dist/index.cjs:65:46711
+2026-02-14 11:24:17.89
+e5b747b3
+User
+at /home/runner/workspace/dist/index.cjs:65:46028
+2026-02-14 11:24:17.89
+e5b747b3
+User
+at t.buildQueryFromSourceParams (/home/runner/workspace/dist/index.cjs:65:45688)
+2026-02-14 11:24:17.94
+e5b747b3
+User
+7:24:17 PM [express] POST /api/notification-settings 500 in 93ms :: {"error":"Failed to save notification settings"}
+2026-02-14 11:26:19.64
+e5b747b3
+User
+7:26:19 PM [express] GET /api/notification-settings 304 in 107ms :: {"id":"19eb9f8a-5b27-4f55-9350-fc2a5d77cb7e","userId":"48ee5dc1-c33b-4925-ba96-c11f19fb9fed","familyId":"37157fe2-7dab-451a-bc2b-67612e0229bf","medicationsEnabled":false,"medicationsMinutes":15,"choresEnabled":true,"choresMinutes":30,"remindersEnabled":true,"remindersMinutes":15,"groceriesEnabled":false,"calendarEnabled":true,"calendarMinutes":15,"pushEnabled":false,"pushSubscription":null,"createdAt":"2026-02-12T19:58:00.122Z","updatedAt":"2026-02-12T19:58:00.122Z"}
