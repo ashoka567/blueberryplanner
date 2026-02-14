@@ -1245,6 +1245,167 @@ export async function registerRoutes(
     }
   });
 
+  app.post('/api/family/members', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId || !req.session.familyId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const currentUser = await storage.getUser(req.session.userId);
+      if (!currentUser || currentUser.isChild) {
+        return res.status(403).json({ error: 'Only guardians can add family members' });
+      }
+
+      const { name, email, password, isChild, age, pin } = req.body;
+
+      if (!name) {
+        return res.status(400).json({ error: 'Name is required' });
+      }
+
+      if (!isChild) {
+        if (!email || !password) {
+          return res.status(400).json({ error: 'Email and password are required for guardians' });
+        }
+        if (password.length < 8) {
+          return res.status(400).json({ error: 'Password must be at least 8 characters' });
+        }
+        const existingUser = await storage.getUserByEmail(email);
+        if (existingUser) {
+          return res.status(400).json({ error: 'An account with this email already exists' });
+        }
+      }
+
+      let hashedPassword = null;
+      if (!isChild && password) {
+        hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+      }
+
+      let hashedPin = null;
+      if (isChild && pin) {
+        if (!/^\d{4}$/.test(pin)) {
+          return res.status(400).json({ error: 'PIN must be exactly 4 digits' });
+        }
+        hashedPin = await bcrypt.hash(pin, SALT_ROUNDS);
+      }
+
+      const newUser = await storage.createUser({
+        name,
+        email: email || null,
+        password: hashedPassword,
+        pinHash: hashedPin,
+        loginType: isChild ? 'PIN' : 'PASSWORD',
+        age: age || null,
+        isChild: !!isChild,
+        status: 'ACTIVE',
+        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
+      });
+
+      await storage.addFamilyMember({
+        familyId: req.session.familyId,
+        userId: newUser.id,
+        roleId: isChild ? 2 : 1,
+        status: 'ACTIVE',
+      });
+
+      const { password: _, pinHash: __, ...userWithoutSensitive } = newUser;
+      res.json(userWithoutSensitive);
+    } catch (error) {
+      console.error('Add family member error:', error);
+      res.status(500).json({ error: 'Failed to add family member' });
+    }
+  });
+
+  app.put('/api/family/members/:userId', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId || !req.session.familyId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const currentUser = await storage.getUser(req.session.userId);
+      if (!currentUser || currentUser.isChild) {
+        return res.status(403).json({ error: 'Only guardians can update family members' });
+      }
+
+      const targetUserId = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
+
+      const familyMembersList = await storage.getUsersByFamily(req.session.familyId);
+      const isInFamily = familyMembersList.some(m => m.id === targetUserId);
+      if (!isInFamily) {
+        return res.status(403).json({ error: 'Can only update members in your family' });
+      }
+
+      const { name, email, password, age, pin } = req.body;
+      const updates: Record<string, any> = {};
+
+      if (name !== undefined) updates.name = name;
+      if (email !== undefined) updates.email = email;
+      if (age !== undefined) updates.age = age;
+
+      if (password) {
+        if (password.length < 8) {
+          return res.status(400).json({ error: 'Password must be at least 8 characters' });
+        }
+        updates.password = await bcrypt.hash(password, SALT_ROUNDS);
+      }
+
+      if (pin) {
+        if (!/^\d{4}$/.test(pin)) {
+          return res.status(400).json({ error: 'PIN must be exactly 4 digits' });
+        }
+        updates.pinHash = await bcrypt.hash(pin, SALT_ROUNDS);
+      }
+
+      if (email !== undefined) {
+        const existingUser = await storage.getUserByEmail(email);
+        if (existingUser && existingUser.id !== targetUserId) {
+          return res.status(400).json({ error: 'An account with this email already exists' });
+        }
+      }
+
+      const updatedUser = await storage.updateUser(targetUserId, updates);
+      if (!updatedUser) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      const { password: _, pinHash: __, ...userWithoutSensitive } = updatedUser;
+      res.json(userWithoutSensitive);
+    } catch (error) {
+      console.error('Update family member error:', error);
+      res.status(500).json({ error: 'Failed to update family member' });
+    }
+  });
+
+  app.delete('/api/family/members/:userId', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId || !req.session.familyId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const currentUser = await storage.getUser(req.session.userId);
+      if (!currentUser || currentUser.isChild) {
+        return res.status(403).json({ error: 'Only guardians can remove family members' });
+      }
+
+      const targetUserId = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
+
+      if (targetUserId === req.session.userId) {
+        return res.status(400).json({ error: 'Cannot remove yourself from the family' });
+      }
+
+      const familyMembersList = await storage.getUsersByFamily(req.session.familyId);
+      const isInFamily = familyMembersList.some(m => m.id === targetUserId);
+      if (!isInFamily) {
+        return res.status(403).json({ error: 'User is not in your family' });
+      }
+
+      await storage.removeFamilyMember(targetUserId, req.session.familyId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Remove family member error:', error);
+      res.status(500).json({ error: 'Failed to remove family member' });
+    }
+  });
+
   app.get('/api/families/:familyId/chores', async (req: Request, res: Response) => {
     const familyId = Array.isArray(req.params.familyId) ? req.params.familyId[0] : req.params.familyId;
     const chores = await storage.getChores(familyId);
