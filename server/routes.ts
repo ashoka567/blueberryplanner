@@ -1104,10 +1104,11 @@ export async function registerRoutes(
       if (!req.session.userId || !req.session.familyId) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
+      const { id, createdAt, updatedAt, ...settingsData } = req.body;
       const settings = await storage.upsertNotificationSettings({
         userId: req.session.userId,
         familyId: req.session.familyId,
-        ...req.body
+        ...settingsData
       });
       res.json(settings);
     } catch (error) {
