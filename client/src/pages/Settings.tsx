@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrentFamily, useFamilyMembers, useAuthUser } from "@/hooks/useData";
-import { updateUserPin, updateUserPoints, getSecurityQuestions, updateSecurityQuestions, deleteAccount } from "@/lib/api";
-import { Loader2, User, Baby, Shield, KeyRound, Check, X, Trophy, Minus, ShieldQuestion, AlertTriangle, Trash2 } from "lucide-react";
+import { updateUserPin, updateUserPoints, getSecurityQuestions, updateSecurityQuestions, deleteAccount, addFamilyMember, updateFamilyMember, removeFamilyMember } from "@/lib/api";
+import { Loader2, User, Baby, Shield, KeyRound, Check, X, Trophy, Minus, ShieldQuestion, AlertTriangle, Trash2, Plus, Pencil, UserPlus, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import {
@@ -48,6 +48,15 @@ export default function Settings() {
   const [savedQ1, setSavedQ1] = useState<string | null>(null);
   const [savedQ2, setSavedQ2] = useState<string | null>(null);
   const [savingQuestions, setSavingQuestions] = useState(false);
+
+  const [showAddGuardian, setShowAddGuardian] = useState(false);
+  const [showAddChild, setShowAddChild] = useState(false);
+  const [editingMember, setEditingMember] = useState<any | null>(null);
+  const [removingMember, setRemovingMember] = useState<any | null>(null);
+  const [memberForm, setMemberForm] = useState({ name: '', email: '', password: '', age: '', pin: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSavingMember, setIsSavingMember] = useState(false);
+  const [isRemovingMember, setIsRemovingMember] = useState(false);
 
   const SECURITY_QUESTIONS = [
     "What was the name of your first pet?",
@@ -102,6 +111,147 @@ export default function Settings() {
       toast({ title: "Failed", description: error instanceof Error ? error.message : "Could not save security questions.", variant: "destructive" });
     } finally {
       setSavingQuestions(false);
+    }
+  };
+
+  const resetMemberForm = () => {
+    setMemberForm({ name: '', email: '', password: '', age: '', pin: '' });
+    setShowPassword(false);
+  };
+
+  const openAddGuardian = () => {
+    resetMemberForm();
+    setShowAddGuardian(true);
+  };
+
+  const openAddChild = () => {
+    resetMemberForm();
+    setShowAddChild(true);
+  };
+
+  const openEditMember = (member: any) => {
+    setMemberForm({
+      name: member.name || '',
+      email: member.email || '',
+      password: '',
+      age: member.age ? String(member.age) : '',
+      pin: '',
+    });
+    setEditingMember(member);
+    setShowPassword(false);
+  };
+
+  const handleAddGuardian = async () => {
+    if (!memberForm.name.trim()) {
+      toast({ title: "Name Required", description: "Please enter a name.", variant: "destructive" });
+      return;
+    }
+    if (!memberForm.email.trim()) {
+      toast({ title: "Email Required", description: "Guardians need an email to log in.", variant: "destructive" });
+      return;
+    }
+    if (!memberForm.password || memberForm.password.length < 8) {
+      toast({ title: "Password Required", description: "Password must be at least 8 characters.", variant: "destructive" });
+      return;
+    }
+    setIsSavingMember(true);
+    try {
+      await addFamilyMember({
+        name: memberForm.name.trim(),
+        email: memberForm.email.trim(),
+        password: memberForm.password,
+        isChild: false,
+      });
+      queryClient.invalidateQueries({ queryKey: ['familyMembers'] });
+      setShowAddGuardian(false);
+      resetMemberForm();
+      toast({ title: "Guardian Added", description: `${memberForm.name} has been added as a guardian.` });
+    } catch (error) {
+      toast({ title: "Failed", description: error instanceof Error ? error.message : "Could not add guardian.", variant: "destructive" });
+    } finally {
+      setIsSavingMember(false);
+    }
+  };
+
+  const handleAddChild = async () => {
+    if (!memberForm.name.trim()) {
+      toast({ title: "Name Required", description: "Please enter a name.", variant: "destructive" });
+      return;
+    }
+    if (memberForm.pin && !/^\d{4}$/.test(memberForm.pin)) {
+      toast({ title: "Invalid PIN", description: "PIN must be exactly 4 digits.", variant: "destructive" });
+      return;
+    }
+    setIsSavingMember(true);
+    try {
+      await addFamilyMember({
+        name: memberForm.name.trim(),
+        isChild: true,
+        age: memberForm.age ? parseInt(memberForm.age) : undefined,
+        pin: memberForm.pin || undefined,
+      });
+      queryClient.invalidateQueries({ queryKey: ['familyMembers'] });
+      setShowAddChild(false);
+      resetMemberForm();
+      toast({ title: "Child Added", description: `${memberForm.name} has been added.` });
+    } catch (error) {
+      toast({ title: "Failed", description: error instanceof Error ? error.message : "Could not add child.", variant: "destructive" });
+    } finally {
+      setIsSavingMember(false);
+    }
+  };
+
+  const handleEditMember = async () => {
+    if (!editingMember) return;
+    if (!memberForm.name.trim()) {
+      toast({ title: "Name Required", description: "Please enter a name.", variant: "destructive" });
+      return;
+    }
+    if (!editingMember.isChild && !memberForm.email.trim()) {
+      toast({ title: "Email Required", description: "Guardians need an email.", variant: "destructive" });
+      return;
+    }
+    if (memberForm.password && memberForm.password.length < 8) {
+      toast({ title: "Password Too Short", description: "Password must be at least 8 characters.", variant: "destructive" });
+      return;
+    }
+    if (memberForm.pin && !/^\d{4}$/.test(memberForm.pin)) {
+      toast({ title: "Invalid PIN", description: "PIN must be exactly 4 digits.", variant: "destructive" });
+      return;
+    }
+    setIsSavingMember(true);
+    try {
+      const updates: any = { name: memberForm.name.trim() };
+      if (!editingMember.isChild) {
+        updates.email = memberForm.email.trim();
+      }
+      if (memberForm.password) updates.password = memberForm.password;
+      if (editingMember.isChild && memberForm.age) updates.age = parseInt(memberForm.age);
+      if (editingMember.isChild && memberForm.pin) updates.pin = memberForm.pin;
+      await updateFamilyMember(editingMember.id, updates);
+      queryClient.invalidateQueries({ queryKey: ['familyMembers'] });
+      setEditingMember(null);
+      resetMemberForm();
+      toast({ title: "Member Updated", description: `${memberForm.name}'s details have been updated.` });
+    } catch (error) {
+      toast({ title: "Failed", description: error instanceof Error ? error.message : "Could not update member.", variant: "destructive" });
+    } finally {
+      setIsSavingMember(false);
+    }
+  };
+
+  const handleRemoveMember = async () => {
+    if (!removingMember) return;
+    setIsRemovingMember(true);
+    try {
+      await removeFamilyMember(removingMember.id);
+      queryClient.invalidateQueries({ queryKey: ['familyMembers'] });
+      setRemovingMember(null);
+      toast({ title: "Member Removed", description: `${removingMember.name} has been removed from the family.` });
+    } catch (error) {
+      toast({ title: "Failed", description: error instanceof Error ? error.message : "Could not remove member.", variant: "destructive" });
+    } finally {
+      setIsRemovingMember(false);
     }
   };
 
@@ -184,13 +334,28 @@ export default function Settings() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-[#D2691E]" />
-            Guardians
-          </CardTitle>
-          <CardDescription>
-            Adult members who can manage the family
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-[#D2691E]" />
+                Guardians
+              </CardTitle>
+              <CardDescription>
+                Adult members who can manage the family
+              </CardDescription>
+            </div>
+            {isGuardian && (
+              <Button
+                size="sm"
+                onClick={openAddGuardian}
+                className="bg-[#D2691E] hover:bg-[#B8581A]"
+                data-testid="button-add-guardian"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -204,16 +369,39 @@ export default function Settings() {
                   alt={guardian.name}
                   className="w-10 h-10 rounded-full"
                 />
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-900">{guardian.name}</p>
                   {guardian.email && (
-                    <p className="text-sm text-gray-500">{guardian.email}</p>
+                    <p className="text-sm text-gray-500 truncate">{guardian.email}</p>
                   )}
                 </div>
                 {guardian.id === authData?.user?.id && (
-                  <span className="text-xs bg-[#D2691E]/10 text-[#D2691E] px-2 py-1 rounded">
+                  <span className="text-xs bg-[#D2691E]/10 text-[#D2691E] px-2 py-1 rounded shrink-0">
                     You
                   </span>
+                )}
+                {isGuardian && (
+                  <div className="flex gap-1 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openEditMember(guardian)}
+                      data-testid={`button-edit-guardian-${guardian.id}`}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    {guardian.id !== authData?.user?.id && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setRemovingMember(guardian)}
+                        className="text-red-500 hover:text-red-600 hover:border-red-300"
+                        data-testid={`button-remove-guardian-${guardian.id}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 )}
               </div>
             ))}
@@ -300,20 +488,35 @@ export default function Settings() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Baby className="h-5 w-5 text-[#D2691E]" />
-            Children
-          </CardTitle>
-          <CardDescription>
-            Kids can log in with their PIN to view and complete tasks
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Baby className="h-5 w-5 text-[#D2691E]" />
+                Children
+              </CardTitle>
+              <CardDescription>
+                Kids can log in with their PIN to view and complete tasks
+              </CardDescription>
+            </div>
+            {isGuardian && (
+              <Button
+                size="sm"
+                onClick={openAddChild}
+                className="bg-[#D2691E] hover:bg-[#B8581A]"
+                data-testid="button-add-child"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {kids.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Baby className="h-12 w-12 mx-auto mb-3 opacity-40" />
               <p>No children added yet</p>
-              <p className="text-sm">Add children during registration to manage their PINs</p>
+              {isGuardian && <p className="text-sm">Click "Add" above to add a child</p>}
             </div>
           ) : (
             <div className="space-y-3">
@@ -423,6 +626,23 @@ export default function Settings() {
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openEditMember(kid)}
+                      data-testid={`button-edit-child-${kid.id}`}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setRemovingMember(kid)}
+                      className="text-red-500 hover:text-red-600 hover:border-red-300"
+                      data-testid={`button-remove-child-${kid.id}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                     <Dialog open={editingPin === kid.id} onOpenChange={(open) => {
                       if (!open) {
                         setEditingPin(null);
@@ -612,6 +832,290 @@ export default function Settings() {
             >
               {isDeleting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Permanently Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showAddGuardian} onOpenChange={(open) => { if (!open) { setShowAddGuardian(false); resetMemberForm(); } }}>
+        <DialogContent className="!w-[90vw] !max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-[#D2691E]" />
+              Add Guardian
+            </DialogTitle>
+            <DialogDescription>
+              Add a new adult member who can manage the family
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Name</Label>
+              <Input
+                placeholder="Guardian's name"
+                value={memberForm.name}
+                onChange={(e) => setMemberForm(f => ({ ...f, name: e.target.value }))}
+                data-testid="input-add-guardian-name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1">
+                <Mail className="h-3.5 w-3.5" /> Email
+              </Label>
+              <Input
+                type="email"
+                placeholder="email@example.com"
+                value={memberForm.email}
+                onChange={(e) => setMemberForm(f => ({ ...f, email: e.target.value }))}
+                data-testid="input-add-guardian-email"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1">
+                <Lock className="h-3.5 w-3.5" /> Password
+              </Label>
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Minimum 8 characters"
+                  value={memberForm.password}
+                  onChange={(e) => setMemberForm(f => ({ ...f, password: e.target.value }))}
+                  data-testid="input-add-guardian-password"
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowAddGuardian(false); resetMemberForm(); }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAddGuardian}
+              disabled={isSavingMember}
+              className="bg-[#D2691E] hover:bg-[#B8581A]"
+              data-testid="button-save-add-guardian"
+            >
+              {isSavingMember ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
+              Add Guardian
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showAddChild} onOpenChange={(open) => { if (!open) { setShowAddChild(false); resetMemberForm(); } }}>
+        <DialogContent className="!w-[90vw] !max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-[#D2691E]" />
+              Add Child
+            </DialogTitle>
+            <DialogDescription>
+              Add a child who can log in with a 4-digit PIN
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Name</Label>
+              <Input
+                placeholder="Child's name"
+                value={memberForm.name}
+                onChange={(e) => setMemberForm(f => ({ ...f, name: e.target.value }))}
+                data-testid="input-add-child-name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Age (optional)</Label>
+              <Input
+                type="number"
+                min="1"
+                max="17"
+                placeholder="Age"
+                value={memberForm.age}
+                onChange={(e) => setMemberForm(f => ({ ...f, age: e.target.value }))}
+                data-testid="input-add-child-age"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1">
+                <KeyRound className="h-3.5 w-3.5" /> Login PIN (optional)
+              </Label>
+              <Input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={4}
+                placeholder="4-digit PIN"
+                value={memberForm.pin}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '').slice(0, 4);
+                  setMemberForm(f => ({ ...f, pin: value }));
+                }}
+                className="font-mono text-xl tracking-widest text-center"
+                data-testid="input-add-child-pin"
+              />
+              <p className="text-xs text-muted-foreground">PIN must be exactly 4 digits. You can set it later.</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowAddChild(false); resetMemberForm(); }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAddChild}
+              disabled={isSavingMember}
+              className="bg-[#D2691E] hover:bg-[#B8581A]"
+              data-testid="button-save-add-child"
+            >
+              {isSavingMember ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
+              Add Child
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editingMember} onOpenChange={(open) => { if (!open) { setEditingMember(null); resetMemberForm(); } }}>
+        <DialogContent className="!w-[90vw] !max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5 text-[#D2691E]" />
+              Edit {editingMember?.isChild ? 'Child' : 'Guardian'}
+            </DialogTitle>
+            <DialogDescription>
+              Update {editingMember?.name}'s details
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Name</Label>
+              <Input
+                placeholder="Name"
+                value={memberForm.name}
+                onChange={(e) => setMemberForm(f => ({ ...f, name: e.target.value }))}
+                data-testid="input-edit-member-name"
+              />
+            </div>
+            {editingMember && !editingMember.isChild && (
+              <>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1">
+                    <Mail className="h-3.5 w-3.5" /> Email
+                  </Label>
+                  <Input
+                    type="email"
+                    placeholder="email@example.com"
+                    value={memberForm.email}
+                    onChange={(e) => setMemberForm(f => ({ ...f, email: e.target.value }))}
+                    data-testid="input-edit-member-email"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1">
+                    <Lock className="h-3.5 w-3.5" /> New Password (leave blank to keep current)
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter new password"
+                      value={memberForm.password}
+                      onChange={(e) => setMemberForm(f => ({ ...f, password: e.target.value }))}
+                      data-testid="input-edit-member-password"
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+            {editingMember?.isChild && (
+              <>
+                <div className="space-y-2">
+                  <Label>Age</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="17"
+                    placeholder="Age"
+                    value={memberForm.age}
+                    onChange={(e) => setMemberForm(f => ({ ...f, age: e.target.value }))}
+                    data-testid="input-edit-member-age"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1">
+                    <KeyRound className="h-3.5 w-3.5" /> New PIN (leave blank to keep current)
+                  </Label>
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={4}
+                    placeholder="4-digit PIN"
+                    value={memberForm.pin}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 4);
+                      setMemberForm(f => ({ ...f, pin: value }));
+                    }}
+                    className="font-mono text-xl tracking-widest text-center"
+                    data-testid="input-edit-member-pin"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEditingMember(null); resetMemberForm(); }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleEditMember}
+              disabled={isSavingMember}
+              className="bg-[#D2691E] hover:bg-[#B8581A]"
+              data-testid="button-save-edit-member"
+            >
+              {isSavingMember ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!removingMember} onOpenChange={(open) => { if (!open) setRemovingMember(null); }}>
+        <DialogContent className="!w-[90vw] !max-w-sm !p-4">
+          <DialogHeader>
+            <DialogTitle className="text-red-600">Remove {removingMember?.isChild ? 'Child' : 'Guardian'}</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to remove <strong>{removingMember?.name}</strong> from the family? This will delete their account and all associated data.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 my-2">
+            <p className="text-sm text-red-800">
+              This action cannot be undone. All of {removingMember?.name}'s data including medication logs, chore history, and settings will be permanently deleted.
+            </p>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setRemovingMember(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleRemoveMember}
+              disabled={isRemovingMember}
+              data-testid="button-confirm-remove-member"
+            >
+              {isRemovingMember && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Remove {removingMember?.name}
             </Button>
           </DialogFooter>
         </DialogContent>
