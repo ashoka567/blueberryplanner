@@ -605,15 +605,16 @@ export async function registerRoutes(
     }
     
     let user;
-    try {
-      user = await storage.getUser(req.session.userId);
-    } catch (dbError) {
-      console.error('Database error in /api/auth/me:', dbError);
+    for (let attempt = 1; attempt <= 3; attempt++) {
       try {
         user = await storage.getUser(req.session.userId);
-      } catch (retryError) {
-        console.error('Database retry in /api/auth/me also failed:', retryError);
-        return res.json({ authenticated: false });
+        break;
+      } catch (dbError) {
+        console.error(`Database error in /api/auth/me (attempt ${attempt}/3):`, dbError);
+        if (attempt === 3) {
+          return res.json({ authenticated: false });
+        }
+        await new Promise(resolve => setTimeout(resolve, 300 * attempt));
       }
     }
     if (!user) {
@@ -714,6 +715,17 @@ export async function registerRoutes(
       req.session.userId = matchedKid.id;
       req.session.familyId = matchingFamily.id;
       req.session.isChild = true;
+      
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) {
+            console.error('Session save error during kid login:', err);
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      });
       
       res.json({
         success: true,

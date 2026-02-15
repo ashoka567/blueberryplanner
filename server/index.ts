@@ -46,10 +46,7 @@ app.use(express.urlencoded({ extended: false }));
 
 const PgSession = connectPgSimple(session);
 
-// Trust proxy for production (Replit uses reverse proxy)
-if (process.env.NODE_ENV === "production") {
-  app.set("trust proxy", 1);
-}
+app.set("trust proxy", 1);
 
 app.use(
   session({
@@ -61,12 +58,12 @@ app.use(
     secret: process.env.SESSION_SECRET || "wpclife-secret-key-change-in-production",
     resave: false,
     saveUninitialized: false,
-    proxy: process.env.NODE_ENV === "production",
+    proxy: true,
     cookie: {
       secure: process.env.NODE_ENV === "production",
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      sameSite: "lax",
     },
   })
 );

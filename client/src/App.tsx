@@ -33,10 +33,12 @@ function AuthenticatedRouter() {
     queryKey: ['auth'],
     queryFn: api.getMe,
     staleTime: 5 * 60 * 1000,
-    retry: false,
+    retry: 2,
+    retryDelay: 500,
   });
 
-  const handleAuthSuccess = () => {
+  const handleAuthSuccess = async () => {
+    await new Promise(resolve => setTimeout(resolve, 300));
     queryClient.invalidateQueries({ queryKey: ['auth'] });
     queryClient.invalidateQueries({ queryKey: ['families'] });
   };
