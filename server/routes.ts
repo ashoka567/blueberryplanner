@@ -546,17 +546,24 @@ export async function registerRoutes(
         familyId = undefined;
       }
       
-      req.session.userId = user.id;
-      req.session.familyId = familyId;
-      
       await new Promise<void>((resolve, reject) => {
-        req.session.save((err) => {
+        req.session.regenerate((err) => {
           if (err) {
-            console.error('Session save error during login:', err);
+            console.error('Session regenerate error:', err);
             reject(err);
-          } else {
-            resolve();
+            return;
           }
+          req.session.userId = user.id;
+          req.session.familyId = familyId;
+          req.session.isChild = user.isChild ?? false;
+          req.session.save((saveErr) => {
+            if (saveErr) {
+              console.error('Session save error during login:', saveErr);
+              reject(saveErr);
+            } else {
+              resolve();
+            }
+          });
         });
       });
       
@@ -575,9 +582,13 @@ export async function registerRoutes(
     req.session.destroy((err) => {
       if (err) {
         console.error('Logout error:', err);
-        return res.status(500).json({ error: 'Failed to logout' });
       }
-      res.clearCookie('connect.sid');
+      res.clearCookie('connect.sid', {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+      });
       res.json({ success: true });
     });
   });
@@ -712,18 +723,24 @@ export async function registerRoutes(
       
       resetRateLimit(rateLimitKey);
       
-      req.session.userId = matchedKid.id;
-      req.session.familyId = matchingFamily.id;
-      req.session.isChild = true;
-      
       await new Promise<void>((resolve, reject) => {
-        req.session.save((err) => {
+        req.session.regenerate((err) => {
           if (err) {
-            console.error('Session save error during kid login:', err);
+            console.error('Session regenerate error during kid login:', err);
             reject(err);
-          } else {
-            resolve();
+            return;
           }
+          req.session.userId = matchedKid.id;
+          req.session.familyId = matchingFamily.id;
+          req.session.isChild = true;
+          req.session.save((saveErr) => {
+            if (saveErr) {
+              console.error('Session save error during kid login:', saveErr);
+              reject(saveErr);
+            } else {
+              resolve();
+            }
+          });
         });
       });
       
@@ -1060,7 +1077,21 @@ export async function registerRoutes(
   app.get('/api/families/:id/members', async (req: Request, res: Response) => {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const users = await storage.getUsersByFamily(id);
-    res.json(users);
+    const safeUsers = users.map(u => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      phone: u.phone,
+      loginType: u.loginType,
+      age: u.age,
+      isChild: u.isChild,
+      emailVerified: u.emailVerified,
+      status: u.status,
+      avatar: u.avatar,
+      chorePoints: u.chorePoints,
+      createdAt: u.createdAt,
+    }));
+    res.json(safeUsers);
   });
 
   app.get('/api/users', async (_req: Request, res: Response) => {
@@ -1248,7 +1279,7 @@ export async function registerRoutes(
       }
       
       const hashedPin = await bcrypt.hash(pin, SALT_ROUNDS);
-      await storage.updateUser(targetUserId, { pinHash: hashedPin });
+      await storage.updateUser(targetUserId, { pinHash: hashedPin, loginType: 'PIN' });
       
       res.json({ success: true, message: 'PIN updated successfully' });
     } catch (error) {

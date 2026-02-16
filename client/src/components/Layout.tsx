@@ -60,9 +60,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
 
   const handleLogout = async () => {
-    await api.logout();
+    try {
+      await api.logout();
+    } catch (e) {
+    }
     queryClient.clear();
-    window.location.href = '/login';
+    queryClient.removeQueries();
+    window.location.replace('/login');
   };
 
   const handleAvatarClick = () => {

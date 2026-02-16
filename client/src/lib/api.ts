@@ -449,7 +449,10 @@ export async function login(email: string, password: string): Promise<AuthRespon
 
 export async function logout(): Promise<void> {
   clearAuthFromStorage();
-  await fetchWithCredentials(`${API_BASE}/auth/logout`, { method: 'POST' });
+  try {
+    await fetchWithCredentials(`${API_BASE}/auth/logout`, { method: 'POST' });
+  } catch (e) {
+  }
 }
 
 export async function deleteAccount(): Promise<{ success: boolean }> {
