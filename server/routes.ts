@@ -1,6 +1,8 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { db } from "./db";
+import { sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { sendVerificationEmail } from "./email";
@@ -1049,6 +1051,114 @@ export async function registerRoutes(
     } catch (error) {
       console.error('Super admin reset password error:', error);
       res.status(500).json({ error: 'Failed to reset password' });
+    }
+  });
+
+  app.get('/api/super-admin/families-detail', async (req: Request, res: Response) => {
+    try {
+      const adminEmail = req.query.adminEmail as string;
+      const passcode = req.query.passcode as string;
+
+      if (!adminEmail || !passcode) {
+        return res.status(400).json({ error: 'Admin credentials required' });
+      }
+
+      if (adminEmail.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase()) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      if (!SUPER_ADMIN_PASSCODE || passcode !== SUPER_ADMIN_PASSCODE) {
+        return res.status(403).json({ error: 'Invalid passcode' });
+      }
+
+      const allFamilies = await storage.getFamilies();
+      const familiesWithMembers = await Promise.all(
+        allFamilies.map(async (family) => {
+          const members = await storage.getUsersByFamily(family.id);
+          return {
+            id: family.id,
+            name: family.name,
+            createdAt: family.createdAt,
+            members: members.map(m => ({
+              id: m.id,
+              name: m.name,
+              email: m.email,
+              isChild: m.isChild,
+              age: m.age,
+              avatar: m.avatar,
+              loginType: m.loginType,
+              chorePoints: m.chorePoints,
+              status: m.status,
+            })),
+          };
+        })
+      );
+
+      res.json(familiesWithMembers);
+    } catch (error) {
+      console.error('Super admin families detail error:', error);
+      res.status(500).json({ error: 'Failed to fetch family details' });
+    }
+  });
+
+  app.delete('/api/super-admin/delete-family', async (req: Request, res: Response) => {
+    try {
+      const { adminEmail, passcode, familyId } = req.body;
+
+      if (!adminEmail || !passcode || !familyId) {
+        return res.status(400).json({ error: 'Admin credentials and family ID required' });
+      }
+
+      if (adminEmail.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase()) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      if (!SUPER_ADMIN_PASSCODE || passcode !== SUPER_ADMIN_PASSCODE) {
+        return res.status(403).json({ error: 'Invalid passcode' });
+      }
+
+      const family = await storage.getFamily(familyId);
+      if (!family) {
+        return res.status(404).json({ error: 'Family not found' });
+      }
+
+      await db.execute(sql`DELETE FROM reminder_targets WHERE reminder_id IN (SELECT id FROM reminders WHERE family_id = ${familyId})`);
+      await db.execute(sql`DELETE FROM reminder_logs WHERE reminder_id IN (SELECT id FROM reminders WHERE family_id = ${familyId})`);
+      await db.execute(sql`DELETE FROM reminders WHERE family_id = ${familyId}`);
+      await db.execute(sql`DELETE FROM medicine_logs WHERE family_id = ${familyId}`);
+      await db.execute(sql`DELETE FROM medicines WHERE family_id = ${familyId}`);
+      await db.execute(sql`DELETE FROM chores WHERE family_id = ${familyId}`);
+      await db.execute(sql`DELETE FROM grocery_items WHERE family_id = ${familyId}`);
+
+      try { await db.execute(sql`DELETE FROM grocery_buy_again WHERE family_id = ${familyId}`); } catch (e) {}
+      try { await db.execute(sql`DELETE FROM grocery_essentials WHERE family_id = ${familyId}`); } catch (e) {}
+      try { await db.execute(sql`DELETE FROM grocery_stores WHERE family_id = ${familyId}`); } catch (e) {}
+
+      await db.execute(sql`DELETE FROM notification_settings WHERE user_id IN (SELECT user_id FROM family_members WHERE family_id = ${familyId})`);
+      await db.execute(sql`DELETE FROM dashboard_config WHERE user_id IN (SELECT user_id FROM family_members WHERE family_id = ${familyId})`);
+
+      try { await db.execute(sql`DELETE FROM member_permissions WHERE family_member_id IN (SELECT id FROM family_members WHERE family_id = ${familyId})`); } catch (e) {}
+
+      const memberUserIds = await db.execute(sql`SELECT user_id FROM family_members WHERE family_id = ${familyId}`);
+      await db.execute(sql`DELETE FROM family_members WHERE family_id = ${familyId}`);
+
+      if (memberUserIds.rows && memberUserIds.rows.length > 0) {
+        for (const row of memberUserIds.rows) {
+          const userId = (row as any).user_id;
+          const otherMemberships = await db.execute(sql`SELECT id FROM family_members WHERE user_id = ${userId}`);
+          if (!otherMemberships.rows || otherMemberships.rows.length === 0) {
+            await db.execute(sql`DELETE FROM email_verifications WHERE user_id = ${userId}`);
+            await db.execute(sql`DELETE FROM users WHERE id = ${userId}`);
+          }
+        }
+      }
+
+      await db.execute(sql`DELETE FROM families WHERE id = ${familyId}`);
+
+      res.json({ success: true, message: "Family and all related data deleted" });
+    } catch (error) {
+      console.error('Super admin delete family error:', error);
+      res.status(500).json({ error: 'Failed to delete family' });
     }
   });
 

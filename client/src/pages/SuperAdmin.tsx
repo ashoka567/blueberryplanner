@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, User, Eye, LogOut, Search, KeyRound, Check, Loader2, EyeOff, ChevronDown } from "lucide-react";
+import { Shield, User, Eye, LogOut, Search, KeyRound, Check, Loader2, EyeOff, ChevronDown, Trash2, Users } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +26,25 @@ interface UserInfo {
   isChild: boolean;
   familyId: string;
   familyName?: string;
+}
+
+interface FamilyMemberDetail {
+  id: string;
+  name: string;
+  email: string | null;
+  isChild: boolean;
+  age: number | null;
+  avatar: string | null;
+  loginType: string | null;
+  chorePoints: number | null;
+  status: string | null;
+}
+
+interface FamilyDetail {
+  id: string;
+  name: string;
+  createdAt: string | null;
+  members: FamilyMemberDetail[];
 }
 
 function SearchableUserSelect({ 
@@ -127,6 +146,7 @@ export default function SuperAdmin() {
   const [isLoading, setIsLoading] = useState(false);
   const [families, setFamilies] = useState<Family[]>([]);
   const [users, setUsers] = useState<UserInfo[]>([]);
+  const [familyDetails, setFamilyDetails] = useState<FamilyDetail[]>([]);
 
   const [resetUserId, setResetUserId] = useState<string | null>(null);
   const [resetUserName, setResetUserName] = useState("");
@@ -134,9 +154,26 @@ export default function SuperAdmin() {
   const [showPassword, setShowPassword] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
+  const [deleteFamilyId, setDeleteFamilyId] = useState<string | null>(null);
+  const [deleteFamilyName, setDeleteFamilyName] = useState("");
+  const [deleteFamilyMemberCount, setDeleteFamilyMemberCount] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const adminEmail = "ashoka6@gmail.com";
 
   const adultUsers = useMemo(() => users.filter(u => !u.isChild), [users]);
+
+  const fetchFamilyDetails = async () => {
+    try {
+      const detailRes = await fetch(`/api/super-admin/families-detail?adminEmail=${encodeURIComponent(adminEmail)}&passcode=${encodeURIComponent(passcode)}`);
+      if (detailRes.ok) {
+        const detailData = await detailRes.json();
+        setFamilyDetails(detailData);
+      }
+    } catch (error) {
+      console.error('Failed to fetch family details:', error);
+    }
+  };
 
   const handleLogin = async () => {
     setIsLoading(true);
@@ -162,6 +199,12 @@ export default function SuperAdmin() {
       const usersRes = await fetch("/api/users");
       const usersData = await usersRes.json();
       setUsers(usersData);
+
+      const detailRes = await fetch(`/api/super-admin/families-detail?adminEmail=${encodeURIComponent(adminEmail)}&passcode=${encodeURIComponent(passcode)}`);
+      if (detailRes.ok) {
+        const detailData = await detailRes.json();
+        setFamilyDetails(detailData);
+      }
 
     } catch (error) {
       toast({
@@ -243,11 +286,57 @@ export default function SuperAdmin() {
     }
   };
 
+  const handleDeleteFamily = async () => {
+    if (!deleteFamilyId) return;
+
+    setIsDeleting(true);
+    try {
+      const res = await fetch("/api/super-admin/delete-family", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adminEmail, passcode, familyId: deleteFamilyId }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to delete family");
+      }
+
+      toast({
+        title: "Family Deleted",
+        description: `${deleteFamilyName} and all related data have been deleted.`,
+      });
+
+      setDeleteFamilyId(null);
+      setDeleteFamilyName("");
+      setDeleteFamilyMemberCount(0);
+
+      await fetchFamilyDetails();
+
+      const familiesRes = await fetch("/api/families");
+      const familiesData = await familiesRes.json();
+      setFamilies(familiesData);
+
+      const usersRes = await fetch("/api/users");
+      const usersData = await usersRes.json();
+      setUsers(usersData);
+    } catch (error) {
+      toast({
+        title: "Delete Failed",
+        description: error instanceof Error ? error.message : "Could not delete family",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleLogout = () => {
     setIsAuthenticated(false);
     setPasscode("");
     setFamilies([]);
     setUsers([]);
+    setFamilyDetails([]);
   };
 
   if (!isAuthenticated) {
@@ -354,17 +443,80 @@ export default function SuperAdmin() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Registered Families ({families.length})</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-indigo-600" />
+              Registered Families ({familyDetails.length})
+            </CardTitle>
+            <CardDescription>
+              Complete family directory with member details
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {families.map((family) => (
-                <div key={family.id} className="p-3 bg-gray-50 rounded-lg">
-                  <p className="font-medium">{family.name}</p>
-                  <p className="text-xs text-gray-500">
-                    {users.filter(u => u.familyId === family.id).length} members
-                  </p>
-                </div>
+            <div className="space-y-4">
+              {familyDetails.map((family) => (
+                <Card key={family.id} data-testid={`card-family-${family.id}`} className="border">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-lg" data-testid={`text-family-name-${family.id}`}>{family.name}</CardTitle>
+                        <CardDescription>{family.members.length} member{family.members.length !== 1 ? 's' : ''}</CardDescription>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-red-600 border-red-200 hover:bg-red-50"
+                        onClick={() => {
+                          setDeleteFamilyId(family.id);
+                          setDeleteFamilyName(family.name);
+                          setDeleteFamilyMemberCount(family.members.length);
+                        }}
+                        data-testid={`button-delete-family-${family.id}`}
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete Family
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {family.members.map((member) => (
+                        <div key={member.id} className="flex items-center gap-3 p-2 rounded-lg bg-gray-50" data-testid={`member-row-${member.id}`}>
+                          {member.avatar ? (
+                            <img
+                              src={member.avatar}
+                              alt={member.name}
+                              className="w-10 h-10 rounded-full bg-white"
+                              data-testid={`img-avatar-${member.id}`}
+                            />
+                          ) : (
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${member.isChild ? 'bg-blue-100' : 'bg-green-100'}`}>
+                              <User className={`h-5 w-5 ${member.isChild ? 'text-blue-600' : 'text-green-600'}`} />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-sm text-gray-900 truncate" data-testid={`text-member-name-${member.id}`}>{member.name}</p>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                member.isChild ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                              }`} data-testid={`badge-role-${member.id}`}>
+                                {member.isChild ? 'Child' : 'Guardian'}
+                              </span>
+                              {member.chorePoints != null && member.chorePoints > 0 && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700" data-testid={`badge-points-${member.id}`}>
+                                  {member.chorePoints} pts
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 truncate">
+                              {member.email || 'No email'}
+                              {member.isChild && member.age != null ? ` · Age ${member.age}` : ''}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </CardContent>
@@ -418,6 +570,31 @@ export default function SuperAdmin() {
             >
               {isResetting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
               Reset Password
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!deleteFamilyId} onOpenChange={(open) => { if (!open) { setDeleteFamilyId(null); setDeleteFamilyName(""); setDeleteFamilyMemberCount(0); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Family: {deleteFamilyName}</DialogTitle>
+            <DialogDescription>
+              This will permanently delete the family "{deleteFamilyName}" and all related data including {deleteFamilyMemberCount} member{deleteFamilyMemberCount !== 1 ? 's' : ''}, chores, medications, reminders, and grocery items. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setDeleteFamilyId(null); setDeleteFamilyName(""); setDeleteFamilyMemberCount(0); }} data-testid="button-cancel-delete">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDeleteFamily}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+              data-testid="button-confirm-delete-family"
+            >
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              Delete Family
             </Button>
           </DialogFooter>
         </DialogContent>
