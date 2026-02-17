@@ -13,24 +13,39 @@ const isNativePlatform = () => {
   }
 };
 
-// Use full URL when running as native app, relative path for web
+const PUBLISHED_SERVER_URL = 'https://84f4d655-5aa9-4be0-8601-93c6a0e8a0d1-00-2o74ew3658wc2.riker.replit.dev';
+
 const getApiBase = () => {
   if (isNativePlatform()) {
-    // Point to your production server for native apps
-    return 'https://84f4d655-5aa9-4be0-8601-93c6a0e8a0d1-00-2o74ew3658wc2.riker.replit.dev/api';
+    return `${PUBLISHED_SERVER_URL}/api`;
   }
   return '/api';
 };
 
 const API_BASE = getApiBase();
 
-// Helper for fetch with credentials (needed for cookies on iOS)
+const fetchWithRetry = async (url: string, options?: RequestInit, retries = 3): Promise<Response> => {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      if (response.status >= 500 && attempt < retries) {
+        await new Promise(r => setTimeout(r, 1000 * attempt));
+        continue;
+      }
+      return response;
+    } catch (error) {
+      if (attempt === retries) throw error;
+      await new Promise(r => setTimeout(r, 1000 * attempt));
+    }
+  }
+  throw new Error('Network request failed after retries');
+};
+
 const fetchWithCredentials = (url: string, options?: RequestInit) => {
   const headers: Record<string, string> = {
     ...(options?.headers as Record<string, string> || {}),
   };
   
-  // For native platforms, send auth info in headers since cookies don't work
   if (isNativePlatform()) {
     const stored = localStorage.getItem('blueberry_auth');
     if (stored) {
@@ -43,16 +58,20 @@ const fetchWithCredentials = (url: string, options?: RequestInit) => {
           headers['X-Family-Id'] = authData.familyId;
         }
       } catch (e) {
-        // Ignore parse errors
       }
     }
   }
   
-  return fetch(url, {
+  const fetchOptions = {
     ...options,
-    credentials: 'include',
+    credentials: 'include' as RequestCredentials,
     headers,
-  });
+  };
+
+  if (isNativePlatform()) {
+    return fetchWithRetry(url, fetchOptions);
+  }
+  return fetch(url, fetchOptions);
 };
 
 export async function getFamilies(): Promise<Family[]> {
