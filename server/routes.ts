@@ -1204,10 +1204,6 @@ export async function registerRoutes(
   });
 
   app.get('/api/families', async (req: Request, res: Response) => {
-    if (req.session.isSuperAdmin) {
-      const families = await storage.getFamilies();
-      return res.json(families);
-    }
     if (req.session.familyId) {
       const family = await storage.getFamily(req.session.familyId);
       return res.json(family ? [family] : []);
