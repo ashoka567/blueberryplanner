@@ -638,6 +638,7 @@ export async function registerRoutes(
       authenticated: true,
       user: { id: user.id, name: user.name, email: user.email, isChild: user.isChild, emailVerified: user.emailVerified },
       familyId: req.session.familyId,
+      isSuperAdmin: req.session.isSuperAdmin || false,
     });
   });
 
@@ -1016,6 +1017,46 @@ export async function registerRoutes(
     } catch (error) {
       console.error('Impersonation error:', error);
       res.status(500).json({ error: 'Impersonation failed' });
+    }
+  });
+
+  app.post('/api/super-admin/stop-impersonation', async (req: Request, res: Response) => {
+    try {
+      if (!req.session.isSuperAdmin) {
+        return res.status(403).json({ error: 'Not in impersonation mode' });
+      }
+
+      const adminUser = await storage.getUserByEmail(SUPER_ADMIN_EMAIL);
+      if (!adminUser) {
+        req.session.destroy((err) => {
+          res.json({ success: true, message: 'Impersonation ended', redirect: '/login' });
+        });
+        return;
+      }
+
+      const adminMembership = await storage.getUserFamily(adminUser.id);
+
+      req.session.regenerate((err) => {
+        if (err) {
+          console.error('Error regenerating session:', err);
+          return res.status(500).json({ error: 'Failed to stop impersonation' });
+        }
+        req.session.userId = adminUser.id;
+        req.session.familyId = adminMembership?.familyId || '';
+        req.session.isChild = false;
+        req.session.isSuperAdmin = false;
+
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error('Error saving admin session:', saveErr);
+            return res.status(500).json({ error: 'Failed to restore admin session' });
+          }
+          res.json({ success: true, message: 'Impersonation ended', redirect: '/dontguess' });
+        });
+      });
+    } catch (error) {
+      console.error('Stop impersonation error:', error);
+      res.status(500).json({ error: 'Failed to stop impersonation' });
     }
   });
 

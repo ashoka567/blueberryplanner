@@ -485,6 +485,7 @@ export interface MeResponse {
   authenticated: boolean;
   user?: AuthUser;
   familyId?: string;
+  isSuperAdmin?: boolean;
 }
 
 export async function getMe(): Promise<MeResponse> {

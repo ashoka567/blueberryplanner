@@ -13,13 +13,14 @@ import {
   Settings,
   Bell,
   HelpCircle,
-  Shield
+  Shield,
+  ArrowLeft
 } from "lucide-react";
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { useFamilyMembers, useCurrentFamily, useAuthUser } from "@/hooks/useData";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import * as api from "@/lib/api";
 import ImageCropDialog from "@/components/ImageCropDialog";
@@ -43,11 +44,19 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [isUploading, setIsUploading] = useState(false);
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [selectedImageSrc, setSelectedImageSrc] = useState<string | null>(null);
+  const [isExitingAdmin, setIsExitingAdmin] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const family = useCurrentFamily();
   const { data: members = [] } = useFamilyMembers(family?.id);
   const { data: authData } = useAuthUser();
+  
+  const { data: authCheck } = useQuery({
+    queryKey: ['auth'],
+    queryFn: api.getMe,
+    staleTime: 5 * 60 * 1000,
+  });
+  const isImpersonating = authCheck?.isSuperAdmin === true;
   // Use auth user data directly, fallback to family member only if needed for extra fields
   const memberData = members.find(m => m.id === authData?.user?.id);
   const currentUser = authData?.user ? {
@@ -67,6 +76,20 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     queryClient.clear();
     queryClient.removeQueries();
     window.location.replace('/login');
+  };
+
+  const handleExitImpersonation = async () => {
+    setIsExitingAdmin(true);
+    try {
+      const res = await fetch('/api/super-admin/stop-impersonation', { method: 'POST' });
+      const data = await res.json();
+      queryClient.clear();
+      queryClient.removeQueries();
+      window.location.replace(data.redirect || '/dontguess');
+    } catch (e) {
+      queryClient.clear();
+      window.location.replace('/login');
+    }
   };
 
   const handleAvatarClick = () => {
@@ -219,7 +242,26 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <div className="grid w-full lg:grid-cols-[280px_1fr]" style={{ height: '100%', overflow: 'hidden' }}>
+      {isImpersonating && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-red-600 text-white px-4 py-2 flex items-center justify-between shadow-lg" data-testid="banner-impersonation">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <Shield className="h-4 w-4" />
+            <span>Admin viewing as: {currentUser?.name || 'User'}</span>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="bg-white text-red-600 hover:bg-red-50 border-white h-7 text-xs font-semibold"
+            onClick={handleExitImpersonation}
+            disabled={isExitingAdmin}
+            data-testid="button-exit-impersonation"
+          >
+            <ArrowLeft className="h-3 w-3 mr-1" />
+            {isExitingAdmin ? 'Exiting...' : 'Exit to Admin'}
+          </Button>
+        </div>
+      )}
+      <div className={cn("grid w-full lg:grid-cols-[280px_1fr]", isImpersonating && "pt-10")} style={{ height: '100%', overflow: 'hidden' }}>
         <div className="hidden border-r lg:block">
           <NavContent />
         </div>
