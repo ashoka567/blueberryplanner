@@ -51,12 +51,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const { data: members = [] } = useFamilyMembers(family?.id);
   const { data: authData } = useAuthUser();
   
-  const { data: authCheck } = useQuery({
-    queryKey: ['auth'],
+  const { data: impersonationCheck } = useQuery({
+    queryKey: ['impersonation-check'],
     queryFn: api.getMe,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
   });
-  const isImpersonating = authCheck?.isSuperAdmin === true;
+  const isImpersonating = impersonationCheck?.isSuperAdmin === true;
   // Use auth user data directly, fallback to family member only if needed for extra fields
   const memberData = members.find(m => m.id === authData?.user?.id);
   const currentUser = authData?.user ? {
@@ -81,14 +81,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const handleExitImpersonation = async () => {
     setIsExitingAdmin(true);
     try {
-      const res = await fetch('/api/super-admin/stop-impersonation', { method: 'POST' });
+      const res = await fetch('/api/super-admin/stop-impersonation', { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
       const data = await res.json();
       queryClient.clear();
-      queryClient.removeQueries();
-      window.location.replace(data.redirect || '/dontguess');
+      window.location.href = data.redirect || '/dontguess';
     } catch (e) {
       queryClient.clear();
-      window.location.replace('/login');
+      window.location.href = '/login';
     }
   };
 
