@@ -222,6 +222,7 @@ export default function SuperAdmin() {
       const res = await fetch("/api/super-admin/impersonate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ userId: user.id, adminEmail, passcode }),
       });
 

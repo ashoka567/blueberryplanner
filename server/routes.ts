@@ -613,6 +613,11 @@ export async function registerRoutes(
   });
 
   app.get('/api/auth/me', async (req: Request, res: Response) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    res.set('Surrogate-Control', 'no-store');
+    
     if (!req.session.userId) {
       return res.json({ authenticated: false });
     }

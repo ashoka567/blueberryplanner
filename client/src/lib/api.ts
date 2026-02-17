@@ -489,7 +489,6 @@ export interface MeResponse {
 }
 
 export async function getMe(): Promise<MeResponse> {
-  // On native platforms, check localStorage first
   if (isNativePlatform()) {
     const stored = getAuthFromStorage();
     if (stored) {
@@ -501,7 +500,7 @@ export async function getMe(): Promise<MeResponse> {
     }
   }
   
-  const res = await fetchWithCredentials(`${API_BASE}/auth/me`);
+  const res = await fetchWithCredentials(`${API_BASE}/auth/me?_t=${Date.now()}`);
   return res.json();
 }
 

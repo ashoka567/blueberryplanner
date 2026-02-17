@@ -84,6 +84,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       const res = await fetch('/api/super-admin/stop-impersonation', { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
       });
       const data = await res.json();
       queryClient.clear();
