@@ -13,7 +13,7 @@ const isNativePlatform = () => {
   }
 };
 
-const PUBLISHED_SERVER_URL = 'https://84f4d655-5aa9-4be0-8601-93c6a0e8a0d1-00-2o74ew3658wc2.riker.replit.dev';
+const PUBLISHED_SERVER_URL = 'https://blueberryplanner.com';
 
 const getApiBase = () => {
   if (isNativePlatform()) {
